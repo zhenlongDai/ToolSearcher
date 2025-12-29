@@ -1,0 +1,7 @@
+# appworld
+./appworld
+# tmep files
+__pycache__/
+*/__pycache__/
+*.pyc
+src/retrieve_dataset/faiss_indexes/

@@ -1,0 +1,13 @@
+{
+    "embedding_name": "Qwen3_Embedding",
+    "embedding_kwargs": {
+        "model_name": "Qwen3_Embedding",
+        "model_path": "/ossfs/workspace/hy65/dzl/model/retriever/Qwen3-Embedding-0.6B"
+    },
+    "faiss_kwargs": {
+        "index_name": "appworld_index",
+        "index_dir": "./src/retrieve_dataset/faiss_indexes",
+        "save_embedding_name": "Qwen3-Embedding-0.6B"
+    },
+    "topk": 10
+}

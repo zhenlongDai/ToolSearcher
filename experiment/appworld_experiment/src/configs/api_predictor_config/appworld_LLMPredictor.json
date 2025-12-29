@@ -1,0 +1,9 @@
+{
+    "demo_task_ids": [],
+    "max_predicted_apis": 30,
+    "mode": "predicted",
+    "model_config": {},
+    "prompt_file_path": "./src/configs/prompts/api_predictor.txt",
+    "save_predicted_apis_dir": "./src/retrieve_dataset/appworld/predicted_apis/train",
+    "is_save_response": true
+}

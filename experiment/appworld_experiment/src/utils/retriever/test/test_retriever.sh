@@ -1,0 +1,1 @@
+python -m src.utils.retriever.test.test_retriever

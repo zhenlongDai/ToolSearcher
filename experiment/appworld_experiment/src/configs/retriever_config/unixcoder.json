@@ -1,0 +1,13 @@
+{
+    "embedding_name": "unixcoder",
+    "embedding_kwargs": {
+        "model_name": "unixcoder",
+        "model_path": "/data/dzl/package/model/unixcoder-base"
+    },
+    "faiss_kwargs": {
+        "index_name": "appworld_index",
+        "index_dir": "./src/retrieve_dataset/faiss_indexes", 
+        "save_embedding_name": "unixcoder"
+    },
+    "topk": 20
+}

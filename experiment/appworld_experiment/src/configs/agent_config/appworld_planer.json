@@ -1,0 +1,54 @@
+{ 
+    "model_config": {
+        "api_key_env_name": "OPENAI_API_KEY",
+        "api_type": "chat_completions",
+        "base_url": "https://api.chatanywhere.tech/v1",
+        "client_name": "openai",
+        "cost_per_token": {
+            "input_cache_hit": 7.5e-07,
+            "input_cache_miss": 7.5e-07,
+            "input_cache_write": 0,
+            "output": 3e-06
+        },
+        "drop_reasoning_content": false,
+        "max_retries": 100,
+        "name": "gpt-4o-mini-ca",
+        "retry_after_n_seconds": 15,
+        "seed": 100,
+        "temperature": 1.0,
+        "use_cache": false
+    },
+    "api_predictor_config": {
+        "embedding_name": "Qwen3_Embedding",
+        "embedding_kwargs": {
+            "model_name": "Qwen3_Embedding",
+            "model_path": "/ossfs/workspace/hy65/dzl/model/retriever/Qwen3-Embedding-0.6B"
+        },
+        "faiss_kwargs": {
+            "index_name": "appworld_simple_index",
+            "index_dir": "./src/retrieve_dataset/faiss_indexes",
+            "save_embedding_name": "Qwen3-Embedding-0.6B"
+        },
+        "topk": 10,
+        "is_simple": true
+    },
+    "appworld_config": {
+        "raise_on_extra_parameters": true,
+        "random_seed": 100
+    },
+    "plan_prompt_template_path": "./src/configs/prompts/PlanExecRefl_agent/plan_instructions.txt",
+    "plan_prior_template_path": "./src/configs/prompts/PlanExecRefl_agent/plan_prior_instructions.txt",
+    "max_plan_samples_num":1,
+    "sub_plan_topk":5,
+    "compress_api_docs": true,
+    "log_lm_calls": true,
+    "logger_config": {
+        "color": true,
+        "verbose": true
+    },
+    "usage_tracker_config": {
+        "max_cost_overall": 1000,
+        "max_cost_per_task": 10,
+        "max_output_tokens_per_task": 100000
+    }
+}

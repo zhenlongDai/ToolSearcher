@@ -1,0 +1,2 @@
+export CUDA_VISIBLE_DEVICES=7
+python -m src.caluate_experiment.test_experiment.test_retrieve_cos
