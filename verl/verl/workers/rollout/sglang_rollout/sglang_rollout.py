@@ -846,6 +846,7 @@ class SGLangRollout(BaseRollout):
             elif _req.state == AsyncRolloutRequestStateEnum.TOOL_CALLING:
                 if _req.messages[-1].tool_calls is not None:
                     parsed_tool_calls = _req.messages[-1].tool_calls
+
                     tool_call_results = await asyncio.gather(
                         *[
                             self._tool_map[tool_call.function.name].execute(
@@ -925,6 +926,10 @@ class SGLangRollout(BaseRollout):
                                     function=function,
                                 )
                             )
+                        
+                        if len(parsed_tool_calls) > 1: #add: one turn only allow to one tool call. 
+                            parsed_tool_calls = parsed_tool_calls[:1]
+
                         if len(parsed_tool_calls) > 0:
                             _req.add_assistant_message(
                                 self.processing_class, normed_content, tool_calls=parsed_tool_calls

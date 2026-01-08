@@ -26,7 +26,7 @@ python -m test.test_verl_utils.SGLangRollout \
     data.train_batch_size=512 \
     data.val_batch_size=256 \
     data.max_prompt_length=4096 \
-    data.max_response_length=3000 \
+    data.max_response_length=2548 \
     data.filter_overlong_prompts=True \
     data.truncation='error' \
     data.return_raw_chat=True \
@@ -43,7 +43,7 @@ python -m test.test_verl_utils.SGLangRollout \
     actor_rollout_ref.model.enable_gradient_checkpointing=True \
     actor_rollout_ref.actor.fsdp_config.param_offload=False \
     actor_rollout_ref.actor.fsdp_config.optimizer_offload=False \
-    actor_rollout_ref.rollout.max_model_len=10000 \
+    actor_rollout_ref.rollout.max_model_len=15000 \
     actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=4 \
     actor_rollout_ref.rollout.tensor_model_parallel_size=4 \
     actor_rollout_ref.rollout.name=sglang \
