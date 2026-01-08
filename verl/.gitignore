@@ -1,12 +1,4 @@
-data/*
-tmp/*
-.sumi/*
-experiment/appworld_experiment/appworld/*
-outputs/*
-*/__pycache__/*
-__pycache__/
-*/__pycache__/
-*.pyc
+
 **/*.pt
 **/checkpoints
 **/wget-log
@@ -132,9 +124,3 @@ logs
 log
 outputs
 .history
-
-verl/logs
-verl/outputs
-verl/checkpoints
-verl/wandb
-verl/wandb_offline
