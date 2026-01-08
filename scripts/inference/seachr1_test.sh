@@ -26,7 +26,7 @@ export WANDB_MODE=offline
 
 python -m test.test_verl_utils.SGLangRollout \
     --config-path="$CONFIG_PATH" \
-    --config-name='search_multiturn_grpo' \
+    --config-name='multiturn_grpo' \
     algorithm.adv_estimator=grpo \
     data.train_batch_size=512 \
     data.val_batch_size=256 \

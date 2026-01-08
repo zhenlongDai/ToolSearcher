@@ -4,6 +4,7 @@ import os
 from utils.json_util import load_data_from_json
 import re
 import json
+from utils.toolbench_util.format_util import standardize
 
 def extract_toolbench_api_docs(tool_dict, category_name: str = None):
     toolbench_api_docs = []
@@ -66,8 +67,8 @@ def constrcut_toolbench_api_doc(api_doc):
     new_api_doc = {}
 
     new_api_doc['category_name'] = api_doc['category_name']
-    new_api_doc['tool_name'] = api_doc['tool_name']
-    new_api_doc['api_name'] = api_doc['name']
+    new_api_doc['tool_name'] = standardize(api_doc['tool_name'])
+    new_api_doc['api_name'] = standardize(api_doc['name'])
     new_api_doc['api_description'] = api_doc['description']
     if api_doc['tool_description'].strip() != "":
         new_api_doc['api_description'] = f"[tool description]:{api_doc['tool_description']} " + "[api description]:"+ api_doc['description']

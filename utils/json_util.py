@@ -5,23 +5,7 @@ import pandas as pd
 import numpy as np
 
 
-class FileAlreadyExistsError(Exception):
-    """自定义异常：文件已存在"""
-    pass
 
-def ensure_directory(file_path):
-    """
-    检查文件路径的目录是否存在，如果不存在则创建。
-    
-    :param file_path: 文件的完整路径
-    """
-    # 获取目录部分
-    directory = os.path.dirname(file_path)
-    
-    # 如果目录不存在，则创建目录
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-        
 def save_list_to_parquet(data_list, file_path):
     """
     将列表对象按行存储到一个 Parquet 文件中。
@@ -29,6 +13,7 @@ def save_list_to_parquet(data_list, file_path):
     :param data_list: 要存储的列表对象
     :param file_path: Parquet 文件路径
     """
+    ensure_dir(file_path)
     # 将列表转为 DataFrame，每个元素作为一行
     df = pd.DataFrame(data_list)
     # 保存到 Parquet 文件
@@ -59,27 +44,6 @@ def read_parquet_to_list(file_path):
     return df.to_dict(orient='records')
 
 
-def get_all_file_names(directory_path):
-    """
-    获取指定路径下的所有文件名字
-
-    :param directory_path: 目录的路径
-    :return: 文件名字列表
-    """
-    try:
-        # 列出目录下的所有文件和文件夹
-        entries = os.listdir(directory_path)
-        # 过滤掉文件夹，只保留文件
-        file_names = [entry for entry in entries if os.path.isfile(os.path.join(directory_path, entry))]
-        return file_names
-    
-    except FileNotFoundError:
-        print(f"Error: The directory '{directory_path}' does not exist.")
-        return []
-    except PermissionError:
-        print(f"Error: Permission denied for accessing the directory '{directory_path}'.")
-        return []
-    
 def remove_comments(code):
     """
     移除代码中的注释，包括单行注释和多行注释
@@ -101,24 +65,6 @@ def remove_comments(code):
     
     return cleaned_code
 
-def calculate_md5(input_string):
-    """
-    计算并返回字符串的MD5哈希值
-
-    参数:
-    input_string (str): 需要计算MD5哈希值的字符串
-
-    返回:
-    str: 输入字符串的MD5哈希值
-    """
-    # 创建一个md5哈希对象
-    md5_hash = hashlib.md5()
-    
-    # 更新哈希对象并计算哈希值
-    md5_hash.update(input_string.encode('utf-8'))
-    
-    # 返回十六进制哈希值
-    return md5_hash.hexdigest()
 
 def check_catalogue_exists(filepath):
     """
@@ -132,18 +78,6 @@ def check_catalogue_exists(filepath):
     """
     return  os.path.exists(filepath)
 
-
-def check_file_exists(filepath):
-    """
-    检查指定路径的文件是否存在。
-
-    参数:
-    filepath (str): 要检查的文件路径。
-
-    返回:
-    bool: 如果文件存在，返回True；否则，返回False。
-    """
-    return  os.path.isfile(filepath)
 
 def read_python_file(file_path):
     """读取指定路径下的Python文件并返回其内容"""
@@ -180,7 +114,7 @@ def load_data_from_json(file_path):
     except Exception as e:
         print(f"加载JSON文件时出错: {e}")
         return None
-      
+
 def save_list_to_json(lst, filepath):
     """
     将列表存储到指定路径的JSON文件中。
@@ -280,8 +214,3 @@ def save_data_to_json(data, filepath):
 
 if __name__ == '__main__':
     print("here")
-    
-    
-   
-
-    

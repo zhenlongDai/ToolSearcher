@@ -18,6 +18,7 @@ class Qwen3Embedding(EmbeddingBase):
         print("model_path:", model_path)
         print("Qwen3Embedding model loaded. dim:", self.dim)
 
+    
     def get_embedding_dimension(self) -> int:
         return self.dim
     
@@ -35,6 +36,7 @@ class Qwen3Embedding(EmbeddingBase):
     def get_query_embeddings(self, queries: list[str]) -> torch.Tensor:
         query_embeddings = self.model.encode(queries, prompt_name="query")
         return query_embeddings
+    
     
 @EmbeddingFactory.register("unixcoder")
 class UnixCoderEmbedding(EmbeddingBase):

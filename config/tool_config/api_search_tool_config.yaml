@@ -1,0 +1,25 @@
+tools:
+  - class_name: verl.tools.api_search_tool.APISearchTool
+    config:
+      retrieval_service_url: http://127.0.0.1:1350/retrieve
+      num_workers: 120
+      rate_limit: 120
+      topk: 5
+      timeout: 300
+      type: native
+    tool_schema:
+      type: function
+      function:
+        name: search_tool_docs
+        description: Searches relevant tools' API documents based on the given query and optional category filter.
+        parameters:
+          type: object
+          properties:
+            category:
+              type: string
+              description: Optional category to filter the tool's API documents. If set to "all", searches across all categories.
+            query:
+              type: string
+              description: A fully-formed semantic query. The tool will return search results for the query.
+          required: 
+            - query

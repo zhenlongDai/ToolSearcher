@@ -14,6 +14,7 @@ class FaissEmbeddingRetriever:
         faiss_kwargs['dim'] = self.embedding_model.get_embedding_dimension()
         self.faiss_util = FaissUtil(**faiss_kwargs)
         #self.topk = faiss_kwargs.get("topk", 30)
+        self.max_token_length = embedding_kwargs.get("max_token_length", 512)
 
     def add_texts(self, texts: list[str]):
         vectors = self.embedding_model.get_sentence_embeddings(texts)
