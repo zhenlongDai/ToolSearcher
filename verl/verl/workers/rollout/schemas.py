@@ -673,3 +673,4 @@ class AsyncRolloutRequest(BaseModel):
             ..., : self.max_response_len
         ]
         self.response_loss_mask = self.loss_mask[..., self.prompt_loss_mask.shape[-1] :][..., : self.max_response_len]
+    

@@ -10,7 +10,7 @@ tools:
     tool_schema:
       type: function
       function:
-        name: search_tool_docs
+        name: api_doc_search_tool
         description: Searches relevant tools' API documents based on the given query and optional category filter.
         parameters:
           type: object
@@ -20,6 +20,6 @@ tools:
               description: Optional category to filter the tool's API documents. If set to "all", searches across all categories.
             query:
               type: string
-              description: A fully-formed semantic query. The tool will return search results for the query.
+              description: A fully-formed semantic query. The tool will return the top searched results from the tools' API documentation for the query.
           required: 
             - query

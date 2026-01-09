@@ -45,7 +45,7 @@ def process_single_data(oneData, prompt_template, data_source_tag, prompt_catego
                 }
     # Build tools kwargs structure
     tools_kwargs = {
-        "search_tool_docs": {
+        "api_doc_search_tool": {
             "create_kwargs": {"ground_truth": ground_truth, "question": question, "data_source": data_source_tag}
         }
     }

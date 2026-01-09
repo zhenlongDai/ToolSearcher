@@ -28,6 +28,7 @@ from verl.utils.dataset.rl_dataset import RLHFDataset
 from verl.utils.dataset.rl_dataset import collate_fn
 from torchdata.stateful_dataloader import StatefulDataLoader
 from tqdm import tqdm
+from utils.verl_util.show_message import print_messages
 
 os.environ["NCCL_DEBUG"] = "WARN"
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
@@ -92,7 +93,7 @@ def infer(
     print("data_len", len(val_dataset))
     
     
-    val_dataloader = get_val_dataloader(val_dataset, val_batch_size = 4, collate_fn = collate_fn)
+    val_dataloader = get_val_dataloader(val_dataset, val_batch_size = 2, collate_fn = collate_fn)
     
     tokenizer.padding_side = "left"
     if tokenizer.pad_token is None:
@@ -145,11 +146,10 @@ def inference(val_dataloader, tokenizer, config, actor_rollout_wg, val_reward_fn
     sample_turns = []
     count = 0
     for test_data in val_dataloader:
-        print("start to generate")
+        print(f">>> start {count} to generate")
         test_batch = DataProto.from_single_dict(test_data)
         count += 1
 
-        print(count)
         # Store original inputs
         input_ids = test_batch.batch["input_ids"]
         input_texts = [tokenizer.decode(ids, skip_special_tokens=True) for ids in input_ids]
@@ -176,7 +176,22 @@ def inference(val_dataloader, tokenizer, config, actor_rollout_wg, val_reward_fn
         test_batch.meta_info["validate"] = True
 
         if debug:
-            print(test_output_gen_batch)
+            print("-----------test_output_gen_batch-----------")
+            print(test_batch)
+            print("-----------test_output_gen_batch-----------")
+            # print("=====message====")
+            # print(len(test_batch.non_tensor_batch['messages']))
+            # print(test_batch.non_tensor_batch['messages'][0])
+            # print("=======test_batch===0======")
+            # print(test_batch[0])
+            # print("=======test_batch===1======")
+            # print(test_batch[1])
+            # print("=======test_batch===2======")
+            # print(test_batch[2])
+            print_messages(test_batch.non_tensor_batch)
+            
+            input()
+
         torch.cuda.empty_cache()
         # evaluate using reward_function
         #result = val_reward_fn(test_batch, return_dict=True)
@@ -188,34 +203,8 @@ def inference(val_dataloader, tokenizer, config, actor_rollout_wg, val_reward_fn
         #   sample_turns.append(test_batch.non_tensor_batch["__num_turns__"])
         #break
 
-    print("=====message====")
-    #print(test_message)
-    print(len(test_batch.non_tensor_batch['messages']))
-
-    print(test_batch.non_tensor_batch['messages'][0])
-    print("=======test_batch===0======")
-    print(test_batch[0])
-    #print("-------test_batch[0]")
-    #print_messages(test_batch[0].non_tensor_batch['extra_info']['messages'])
-    print("=======test_batch===1======")
-    print(test_batch[1])
-    #print("-------test_batch[1]")
-    #print_messages(test_batch[1].non_tensor_batch['extra_info']['messages'])
-    print("=======test_batch===2======")
-    print(test_batch[2])
-    #print("-------test_batch[2]")
-    #print_messages(test_batch[2].non_tensor_batch['extra_info']['messages'])
-    #tools_kwargs/extra_info(question)/reward_model
-
-    # for idx, sample_output in tqdm(sample_outputs):
-    #     print(f"{idx}:{sample_output}")
     
 
-
-def print_messages(messages):
-    for message in messages:
-        print(message)
-        print("---")
     
 if __name__ == "__main__":
     main()
