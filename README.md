@@ -13,6 +13,7 @@ pip install ray==2.44.0
 pip install ransformers==4.52.4
 pip install /XXX/flash_attn-2.6.3+cu123torch2.4cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
 pip install wandb
+pip install munch
 ```
 #### environment for retriever
 ```bash
@@ -29,4 +30,5 @@ conda install -c pytorch -c nvidia faiss-gpu=1.8.0
 pip install sentence_transformers==5.2.0
 ## API function
 pip install uvicorn fastapi
+pip install munch
 ```

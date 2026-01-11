@@ -119,7 +119,7 @@ def _passages2string(retrieval_result):
     format_reference = ""
     for idx, doc_item in enumerate(retrieval_result):
         content = doc_item["api_doc"]#["contents"]
-        format_reference += f"API Doc {idx + 1}:\n{content}\n"
+        format_reference += f"doc {idx + 1}:\n{content}\n"
     return format_reference.strip()
 
 def _passages2class_name(retrieval_result):

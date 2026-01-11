@@ -117,6 +117,7 @@ class AsyncRolloutRequest(BaseModel):
     generation_prompt_ids: Optional[torch.Tensor] = None
     base_conv_wo_gen_prompt_end_pos: int
     base_conv_with_gen_prompt_end_pos: int
+    max_tool_response_length: int #add max_tool_response_length
 
     @model_validator(mode="before")
     @classmethod
@@ -673,4 +674,20 @@ class AsyncRolloutRequest(BaseModel):
             ..., : self.max_response_len
         ]
         self.response_loss_mask = self.loss_mask[..., self.prompt_loss_mask.shape[-1] :][..., : self.max_response_len]
-    
+
+
+    def truncate_tool_response(
+        self, tool_response_context, processing_class: PreTrainedTokenizer | PreTrainedTokenizerFast | ProcessorMixin
+    ) -> None: #single tool_response_context
+        tool_response_ids = processing_class(text=[tool_response_context], return_tensors="pt")
+        model_inputs = dict(tool_response_ids)
+        tool_response_ids = model_inputs['input_ids'][0]  
+        tool_response_ids = tool_response_ids[:self.max_tool_response_length]
+        truncated = False
+        if len(tool_response_ids) >= self.max_tool_response_length:     
+            truncated = True
+
+        tool_response_context = processing_class.decode(tool_response_ids, skip_special_tokens = True)
+        if truncated:
+            tool_response_context += "..."
+        return tool_response_context

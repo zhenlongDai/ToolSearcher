@@ -5,6 +5,7 @@ from utils.json_util import load_data_from_json
 import re
 import json
 from utils.toolbench_util.format_util import standardize
+from utils.json_util import dump_yaml
 
 def extract_toolbench_api_docs(tool_dict, category_name: str = None):
     toolbench_api_docs = []
@@ -71,9 +72,11 @@ def constrcut_toolbench_api_doc(api_doc):
     new_api_doc['api_name'] = standardize(api_doc['name'])
     new_api_doc['api_description'] = api_doc['description']
     if api_doc['tool_description'].strip() != "":
-        new_api_doc['api_description'] = f"[tool description]:{api_doc['tool_description']} " + "[api description]:"+ api_doc['description']
-    new_api_doc['required_parameters'] = api_doc['required_parameters']
-    new_api_doc['optional_parameters'] = api_doc['optional_parameters']
+        new_api_doc['api_description'] = f"[tool]:{api_doc['tool_description']} " + "[api]:"+ api_doc['description']
+    if api_doc['required_parameters'] != []:
+        new_api_doc['required_parameters'] = api_doc['required_parameters']
+    if api_doc['optional_parameters'] != []:
+        new_api_doc['optional_parameters'] = api_doc['optional_parameters']
     if 'template_response' in api_doc:
         new_api_doc['template_response'] = api_doc['template_response']
     elif 'schema' in api_doc:
@@ -81,6 +84,7 @@ def constrcut_toolbench_api_doc(api_doc):
     elif 'test_endpoint' in api_doc:
         new_api_doc['method'] = api_doc['test_endpoint']
     new_api_doc = clean_json_strings(new_api_doc)
+    new_api_doc = dump_yaml(new_api_doc)
     return new_api_doc  
 
 def constrcut_toolbench_api_docs(api_docs):

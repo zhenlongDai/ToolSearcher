@@ -6,7 +6,7 @@ URL = "http://127.0.0.1:1350/retrieve"
 
 # 构造输入数据
 payload = {
-    "category": None,
+    "category": "all",
     "query": "Searches Reddit posts.",
     "topk": 5,
     "return_scores": True

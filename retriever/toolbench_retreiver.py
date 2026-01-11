@@ -5,6 +5,9 @@ from utils.json_util import load_data_from_json
 from utils.toolbench_util.api_doc_util import constrcut_toolbench_api_docs, get_api_docs
 from tqdm import tqdm
 from utils.toolbench_util.format_util import get_target_category
+from typing import List, Union
+from transformers import AutoTokenizer
+
 # class SingleCategoryInformation:
 #     embedding_kwargs: dict = None
 #     faiss_kwargs: dict = None
@@ -29,6 +32,44 @@ def merge_similar_category_info(infolist: list[SingleCategoryInformation], index
             new_info_map[new_category] = info
     new_info_list = list(new_info_map.values())
     return new_info_list
+
+def truncate_api_docs(
+    standard_API_docs: Union[str, List[str]],
+    retrieval_model_path: str,
+    max_len: int = 300
+) -> Union[str, List[str]]:
+    """
+    按 tokenizer 的 token 长度截断 API 文档内容。
+    参数：
+        standard_API_docs: 字符串或字符串列表
+        retrieval_model_path: 用于加载 tokenizer 的模型路径/名称
+        max_len: 最大 token 长度（含 special tokens）
+    返回：
+        截断后的字符串或字符串列表（与输入类型相同）
+    """
+    tokenizer = AutoTokenizer.from_pretrained(retrieval_model_path)
+    def _truncate_one(text: str) -> str:
+        # 编码为 token id（不返回 tensor，避免维度问题）
+        encoded = tokenizer(
+            text,
+            add_special_tokens=True,
+            truncation=True,
+            max_length=max_len,
+            return_attention_mask=False,
+            return_tensors=None,
+        )
+        input_ids = encoded["input_ids"]  # List[int]
+        # 直接 decode 截断后的 token
+        truncated_text = tokenizer.decode(
+            input_ids,
+            skip_special_tokens=True,
+            clean_up_tokenization_spaces=True,
+        )
+        return truncated_text
+    if isinstance(standard_API_docs, str):
+        return _truncate_one(standard_API_docs)
+    else:
+        return [_truncate_one(doc) for doc in standard_API_docs]
 
 def construct_toolbench_category_infos(config: Config) -> list[SingleCategoryInformation]:
     embedding_kwargs =  {
@@ -65,8 +106,10 @@ def construct_toolbench_category_infos(config: Config) -> list[SingleCategoryInf
         if not all_faiss_index_exist:
             API_docs = get_api_docs(category_name, category_tools_path)
             standand_API_docs = constrcut_toolbench_api_docs(API_docs)
+           
             standand_API_docs = [str(api_doc) for api_doc in standand_API_docs]
-        
+            standand_API_docs = truncate_api_docs(standand_API_docs, config.retrieval_model_path)
+
             if config.add_retireval_without_category:
                 all_standand_API_docs.extend(standand_API_docs)
         else:

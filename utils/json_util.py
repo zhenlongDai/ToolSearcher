@@ -3,8 +3,12 @@ import json
 import hashlib
 import pandas as pd
 import numpy as np
+from munch import unmunchify
+import yaml
 
-
+def dump_yaml(json_object: list[any] | dict[any, any], indent: int = 2) -> str:
+    json_object = unmunchify(json_object)
+    return yaml.dump(json_object, sort_keys=False, width=float("inf"), indent=indent)
 
 def save_list_to_parquet(data_list, file_path):
     """

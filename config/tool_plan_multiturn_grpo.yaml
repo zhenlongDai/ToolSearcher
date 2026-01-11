@@ -20,4 +20,5 @@ actor_rollout_ref:
     multi_turn:
       enable: True
       max_assistant_turns: 8
+      max_tool_response_length: 768
       format: qwen

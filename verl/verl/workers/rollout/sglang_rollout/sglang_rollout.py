@@ -857,7 +857,8 @@ class SGLangRollout(BaseRollout):
                             for tool_call in parsed_tool_calls
                         ]
                     )
-                    _req.add_tool_response_messages(self.processing_class, [resp for resp, _, _ in tool_call_results])
+                    #add truncate_tool_response
+                    _req.add_tool_response_messages(self.processing_class, [_req.truncate_tool_response(resp, self.processing_class) for resp, _, _ in tool_call_results])
                     for tool_call, (resp, reward, metrics) in zip(parsed_tool_calls, tool_call_results, strict=True):
                         _req.update_metrics(metrics, tool_call.function.name)
                     if len(_req.input_ids) >= self.config.max_model_len:
@@ -1299,6 +1300,7 @@ class SGLangRollout(BaseRollout):
                 use_inference_chat_template=self.config.multi_turn.use_inference_chat_template,
                 tokenization_sanity_check_mode=self.config.multi_turn.tokenization_sanity_check_mode,
                 processing_class=self.processing_class,
+                max_tool_response_length=self.config.multi_turn.max_tool_response_length, #add max_tool_response_len
             )
             error_message = f"""Request {req.request_id} has mismatched lengths: 
             input_ids={req.input_ids.shape[-1]}, 

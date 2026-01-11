@@ -26,7 +26,7 @@ python -m test.test_verl_utils.SGLangRollout \
     algorithm.adv_estimator=grpo \
     data.train_batch_size=512 \
     data.val_batch_size=256 \
-    data.max_prompt_length=4096 \
+    data.max_prompt_length=1024 \
     data.max_response_length=2548 \
     data.filter_overlong_prompts=True \
     data.truncation='error' \
@@ -51,6 +51,7 @@ python -m test.test_verl_utils.SGLangRollout \
     actor_rollout_ref.rollout.gpu_memory_utilization=0.5 \
     actor_rollout_ref.rollout.n=1 \
     actor_rollout_ref.rollout.multi_turn.max_assistant_turns=8 \
+    actor_rollout_ref.rollout.multi_turn.max_tool_response_length=768\
     actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=4 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     algorithm.use_kl_in_reward=False \
