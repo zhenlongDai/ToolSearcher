@@ -783,7 +783,7 @@ class SGLangRollout(BaseRollout):
         if self.config.calculate_log_probs:
             # we will recompute old log prob with actor
             batch["rollout_log_probs"] = rollout_log_probs
-
+       
         # free cache engine
         if self._engine is not None and self._tp_rank == 0:
             loop = asyncio.get_event_loop()

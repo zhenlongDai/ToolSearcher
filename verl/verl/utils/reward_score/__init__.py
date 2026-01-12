@@ -101,7 +101,13 @@ def default_compute_score(
         from . import search_r1_like_qa_em
 
         res = search_r1_like_qa_em.compute_score(solution_str, ground_truth)
-
+    elif data_source in [
+        "G1",
+        "G2",
+        "G3",
+    ]:
+        from . import tool_plan_score
+        res = tool_plan_score.compute_score(solution_str, ground_truth)
     else:
         raise NotImplementedError(f"Reward function is not implemented for {data_source=}")
 
