@@ -988,6 +988,8 @@ class SGLangRollout(BaseRollout):
         if current_turns >= self.config.multi_turn.max_assistant_turns:
             finish_reason_type = FinishReasonTypeEnum.STOP
 
+        _req.num_turns = current_turns
+
         # Calculate the reward for each tool
         async def calc_reward_and_release_fn(name: str, tool: BaseTool):
             reward = await tool.calc_reward(_req.request_id, **_req.tools_kwargs[name].get("calc_reward_kwargs", {}))
@@ -1101,6 +1103,7 @@ class SGLangRollout(BaseRollout):
         reward_scores = []
         multi_modal_inputs = []
         request_ids = []
+        num_turns = []
 
         for req in sorted_output_req_list:
             assert req.state == AsyncRolloutRequestStateEnum.COMPLETED, f"Request {req.request_id} is not completed"
@@ -1141,6 +1144,10 @@ class SGLangRollout(BaseRollout):
             reward_scores.append(req.reward_scores)
             multi_modal_inputs.append(req.multi_modal_inputs)
             request_ids.append(req.request_id)
+            num_turns.append(req.num_turns)
+
+
+        #print()
 
         prompt_ids = pad_sequence(
             prompt_ids,
@@ -1232,6 +1239,7 @@ class SGLangRollout(BaseRollout):
             "messages": np.array(messages),
             "reward_scores": np.array(reward_scores),
             "request_id": np.array(request_ids),
+            "__num_turns__": np.array(num_turns),
         }
 
         is_multimodal = isinstance(self.processing_class, ProcessorMixin) and (
@@ -1301,6 +1309,7 @@ class SGLangRollout(BaseRollout):
                 tokenization_sanity_check_mode=self.config.multi_turn.tokenization_sanity_check_mode,
                 processing_class=self.processing_class,
                 max_tool_response_length=self.config.multi_turn.max_tool_response_length, #add max_tool_response_len
+                num_turns = 0 # add num_turns
             )
             error_message = f"""Request {req.request_id} has mismatched lengths: 
             input_ids={req.input_ids.shape[-1]}, 
