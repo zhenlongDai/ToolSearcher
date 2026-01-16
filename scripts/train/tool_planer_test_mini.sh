@@ -13,7 +13,7 @@ TRAIN_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data
 VAL_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data/eval.parquet"
 
 TOOL_CONFIG="$CONFIG_PATH/tool_config/api_search_tool_config.yaml"
-EXPERIMENT_NAME='qwen2.5-7b-instruct_tool_plan_test_v1' 
+EXPERIMENT_NAME='qwen2.5-7b-instruct_tool_plan_test_event_reward' 
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 export WANDB_MODE=offline
@@ -24,6 +24,7 @@ python3 -m verl.trainer.main_ppo \
     --config-path="$CONFIG_PATH" \
     --config-name='tool_plan_multiturn_grpo' \
     algorithm.adv_estimator=grpo \
+    reward_model.reward_manager=toolplan\
     data.train_batch_size=8 \
     data.val_batch_size=128 \
     data.max_prompt_length=4096 \

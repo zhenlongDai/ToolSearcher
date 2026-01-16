@@ -21,13 +21,13 @@ from verl.utils.reward_score import default_compute_score
 from verl.workers.reward_manager import register
 
 
-@register("naive")
-class NaiveRewardManager:
+@register("toolplan")
+class ToolplanRewardManager:
     """The reward manager."""
 
     def __init__(self, tokenizer, num_examine, compute_score=None, reward_fn_key="data_source") -> None:
         """
-        Initialize the NaiveRewardManager instance.
+        Initialize the ToolPlanRewardManager instance.
 
         Args:
             tokenizer: The tokenizer used to decode token IDs into text.
@@ -58,7 +58,8 @@ class NaiveRewardManager:
 
         for i in range(len(data)):
             data_item = data[i]  # DataProtoItem
-            
+            print(data_item)
+            input()
             prompt_ids = data_item.batch["prompts"]
 
             prompt_length = prompt_ids.shape[-1]
