@@ -806,6 +806,7 @@ class SGLangRollout(BaseRollout):
         current_turns = 0
         user_turns = 0
         user_turn_rewards = []
+        current_category_num = 0
 
         # Create request-level sampling parameters
         request_sampling_params = self.sampling_params.copy()
@@ -857,6 +858,11 @@ class SGLangRollout(BaseRollout):
                             for tool_call in parsed_tool_calls
                         ]
                     )
+                    #add get the tool_call.function.arguments is Subcategory
+                    for tool_call in parsed_tool_calls:
+                        category = tool_call.function.arguments.get("category", None)
+                        if category and category != "all":
+                            current_category_num += 1
                     #add truncate_tool_response
                     _req.add_tool_response_messages(self.processing_class, [_req.truncate_tool_response(resp, self.processing_class) for resp, _, _ in tool_call_results])
                     for tool_call, (resp, reward, metrics) in zip(parsed_tool_calls, tool_call_results, strict=True):
@@ -989,6 +995,7 @@ class SGLangRollout(BaseRollout):
             finish_reason_type = FinishReasonTypeEnum.STOP
 
         _req.num_turns = current_turns
+        _req.category_num = current_category_num
 
         # Calculate the reward for each tool
         async def calc_reward_and_release_fn(name: str, tool: BaseTool):
@@ -1104,6 +1111,7 @@ class SGLangRollout(BaseRollout):
         multi_modal_inputs = []
         request_ids = []
         num_turns = []
+        category_num = []
 
         for req in sorted_output_req_list:
             assert req.state == AsyncRolloutRequestStateEnum.COMPLETED, f"Request {req.request_id} is not completed"
@@ -1145,7 +1153,7 @@ class SGLangRollout(BaseRollout):
             multi_modal_inputs.append(req.multi_modal_inputs)
             request_ids.append(req.request_id)
             num_turns.append(req.num_turns)
-
+            category_num.append(req.category_num)
 
         #print()
 
@@ -1240,6 +1248,7 @@ class SGLangRollout(BaseRollout):
             "reward_scores": np.array(reward_scores),
             "request_id": np.array(request_ids),
             "__num_turns__": np.array(num_turns),
+            "category_num": np.array(category_num),
         }
 
         is_multimodal = isinstance(self.processing_class, ProcessorMixin) and (
@@ -1309,7 +1318,8 @@ class SGLangRollout(BaseRollout):
                 tokenization_sanity_check_mode=self.config.multi_turn.tokenization_sanity_check_mode,
                 processing_class=self.processing_class,
                 max_tool_response_length=self.config.multi_turn.max_tool_response_length, #add max_tool_response_len
-                num_turns = 0 # add num_turns
+                num_turns = 0, # add num_turns
+                category_num = 0, # add category_num
             )
             error_message = f"""Request {req.request_id} has mismatched lengths: 
             input_ids={req.input_ids.shape[-1]}, 

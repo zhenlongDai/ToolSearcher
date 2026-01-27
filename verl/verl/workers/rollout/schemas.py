@@ -119,7 +119,8 @@ class AsyncRolloutRequest(BaseModel):
     base_conv_with_gen_prompt_end_pos: int
     max_tool_response_length: int #add max_tool_response_length
     num_turns: int #add num_turns
-    
+    category_num: int # add category_num
+
     @model_validator(mode="before")
     @classmethod
     def initialize_request(cls, values):
@@ -217,7 +218,7 @@ class AsyncRolloutRequest(BaseModel):
         ).shape[-1]
 
         values["num_turns"] = 0 #add num_turns
-   
+        values["category_num"] = 0 #add category_num
 
         return values
 

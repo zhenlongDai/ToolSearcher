@@ -176,7 +176,12 @@ def compute_data_metrics(batch: DataProto, use_critic: bool = True) -> dict[str,
         metrics["num_turns/min"] = num_turns.min()
         metrics["num_turns/max"] = num_turns.max()
         metrics["num_turns/mean"] = num_turns.mean()
-
+    if "category_num" in batch.non_tensor_batch:
+        category_num = batch.non_tensor_batch["category_num"]
+        metrics["category_num/min"] = category_num.min()
+        metrics["category_num/max"] = category_num.max()
+        metrics["category_num/mean"] = category_num.mean()
+    
     return metrics
 
 

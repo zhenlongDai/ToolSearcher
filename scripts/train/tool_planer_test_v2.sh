@@ -13,7 +13,7 @@ TRAIN_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data
 VAL_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data/eval.parquet"
 
 TOOL_CONFIG="$CONFIG_PATH/tool_config/api_search_tool_config.yaml"
-EXPERIMENT_NAME='qwen2.5-7b-instruct_tool_plan_test_v22_tool_1000' 
+EXPERIMENT_NAME='qwen2.5-7b-instruct_tool_plan_test_v23_add_category_num' 
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 #export WANDB_MODE=offline
@@ -27,7 +27,7 @@ python3 -m verl.trainer.main_ppo \
     data.train_batch_size=256 \
     data.val_batch_size=128 \
     data.max_prompt_length=4096 \
-    data.max_response_length=6000 \
+    data.max_response_length=5000 \
     data.filter_overlong_prompts=True \
     data.truncation='error' \
     data.return_raw_chat=True \
@@ -52,7 +52,7 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.rollout.gpu_memory_utilization=0.5 \
     actor_rollout_ref.rollout.n=5 \
     actor_rollout_ref.rollout.multi_turn.max_assistant_turns=8 \
-    actor_rollout_ref.rollout.multi_turn.max_tool_response_length=1000\
+    actor_rollout_ref.rollout.multi_turn.max_tool_response_length=768\
     actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=2 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     algorithm.use_kl_in_reward=False \
