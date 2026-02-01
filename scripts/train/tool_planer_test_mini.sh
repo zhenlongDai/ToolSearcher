@@ -23,7 +23,7 @@ export HYDRA_FULL_ERROR=1
 python3 -m verl.trainer.main_ppo \
     --config-path="$CONFIG_PATH" \
     --config-name='tool_plan_multiturn_grpo' \
-    algorithm.adv_estimator=TOOL_PLAN \
+    algorithm.adv_estimator=tool_plan \
     reward_model.reward_manager=toolplan\
     data.train_batch_size=8 \
     data.val_batch_size=128 \

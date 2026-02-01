@@ -101,8 +101,13 @@ def compute_data_metrics(batch: DataProto, use_critic: bool = True) -> dict[str,
             - prompt_length/mean, max, min, clip_ratio: Statistics about prompt lengths
             - num_turns/mean, max, min: Statistics about the number of multi-turn conversations
     """
-    sequence_score = batch.batch["token_level_scores"].sum(-1)
-    sequence_reward = batch.batch["token_level_rewards"].sum(-1)
+    
+    if batch.batch["token_level_scores"].dim() == 1:
+        sequence_score = batch.batch["token_level_scores"]
+        sequence_reward = batch.batch["token_level_rewards"]
+    else:
+        sequence_score = batch.batch["token_level_scores"].sum(-1)
+        sequence_reward = batch.batch["token_level_rewards"].sum(-1)
 
     advantages = batch.batch["advantages"]
     returns = batch.batch["returns"]
@@ -126,7 +131,11 @@ def compute_data_metrics(batch: DataProto, use_critic: bool = True) -> dict[str,
         valid_values = torch.masked_select(values, response_mask)
         return_diff_var = torch.var(valid_returns - valid_values)
         return_var = torch.var(valid_returns)
-
+    
+    #print(sequence_score)
+    #print(sequence_reward)
+    #print(batch.batch["token_level_scores"])
+    #input("3-------")
     metrics = {
         # score
         "critic/score/mean": torch.mean(sequence_score).detach().item(),

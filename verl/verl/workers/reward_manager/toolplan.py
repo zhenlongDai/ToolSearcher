@@ -23,6 +23,7 @@ from verl.utils.toolplan.show_message import _structure_single_dialogue
 from verl.utils.toolplan.search_process_util import search_process, parse_tools_from_retrieval_content, print_single_data
 from verl.utils.toolplan.check_util import check_turns_data
 import copy
+import random
 #role:system/user/[assistant/tool] , 理想状态assistant结尾
 #content:
 def get_api_names(search_oject):

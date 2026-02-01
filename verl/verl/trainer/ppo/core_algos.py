@@ -695,7 +695,7 @@ def tool_selection_adv_reward_fuction(
         advantages: `(torch.Tensor)`
             shape is (bs, response_length)
     """
-    scores = token_level_rewards
+    scores = token_level_rewards.clone()
 
     id2score = defaultdict(list)
     id2mean = {}
@@ -760,9 +760,11 @@ def compute_tool_plan_advantage(
         Returns: `(torch.Tensor)`
             shape is (bs, response_length)
     """
-    
+    #print(token_level_rewards)
+    #print("1-------")
     tool_selection_adv_reward = tool_selection_adv_reward_fuction(token_level_rewards, index, epsilon, norm_adv_by_std_in_grpo, config)
-
+    #print(token_level_rewards)
+    #print("2-------")
     scores = []
     final_scores = []
     final_adv_list = []
