@@ -219,6 +219,8 @@ def compute_advantage(
     num_repeat: int = 1,
     norm_adv_by_std_in_grpo: bool = True,
     config: Optional[AlgoConfig] = None,
+    process_rewards = None,
+    has_answer_states = None
 ) -> DataProto:
     """Compute advantage estimates for policy optimization.
 
@@ -234,7 +236,8 @@ def compute_advantage(
         norm_adv_by_std_in_grpo (bool, optional): Whether to normalize advantages by standard deviation in
             GRPO. Defaults to True.
         config (dict, optional): Configuration dictionary for algorithm settings. Defaults to None.
-
+        process_rewards: list[list] search process rewards. Defaults to None.
+        has_answer_states: list[boolean] wether there is the answer or only search process. Defaults to None.
     Returns:
         DataProto: The updated data with computed advantages and returns.
     """
@@ -271,6 +274,21 @@ def compute_advantage(
         )
         data.batch["advantages"] = advantages
         data.batch["returns"] = returns
+    elif adv_estimator == AdvantageEstimator.TOOL_PLAN:
+        # Initialize the mask for TOOL_PLAN calculation
+        tool_plan_calculation_mask = data.batch["response_mask"]
+        # Call compute_tool_plan_advantage with parameters matching its definition
+        advantages, returns = core_algos.compute_tool_plan_advantage(
+            token_level_rewards=data.batch["token_level_rewards"],
+            process_rewards= process_rewards,
+            has_answer_states = has_answer_states,
+            response_mask=tool_plan_calculation_mask,
+            index=data.non_tensor_batch["uid"],
+            norm_adv_by_std_in_grpo=norm_adv_by_std_in_grpo,
+        )
+        data.batch["advantages"] = advantages
+        data.batch["returns"] = returns
+
     else:
         # handle all other adv estimator type other than GAE and GRPO
         adv_estimator_fn = core_algos.get_adv_estimator_fn(adv_estimator)
@@ -380,6 +398,7 @@ class RayPPOTrainer:
             AdvantageEstimator.OPO,
             AdvantageEstimator.REINFORCE_PLUS_PLUS_BASELINE,
             AdvantageEstimator.GPG,
+            AdvantageEstimator.TOOL_PLAN,
         ]:
             self.use_critic = False
         else:
@@ -763,11 +782,20 @@ class RayPPOTrainer:
             # evaluate using reward_function
             result = self.val_reward_fn(test_batch, return_dict=True)
             reward_tensor = result["reward_tensor"]
-            scores = reward_tensor.sum(-1).cpu().tolist()
+            if reward_tensor.dim() == 2:
+                scores_tensor = reward_tensor.sum(-1)  # shape: (bsz,)
+            elif reward_tensor.dim() == 1:
+                scores_tensor = reward_tensor          # shape: (bsz,)
+            else:
+                raise ValueError(
+                    f"Unexpected reward_tensor.dim() = {reward_tensor.dim()}, "
+                    f"shape = {reward_tensor.shape}"
+                )
+            scores = reward_tensor.cpu().tolist()
             sample_scores.extend(scores)
-
+          
             reward_extra_infos_dict["reward"].extend(scores)
-            print(f"len reward_extra_infos_dict['reward']: {len(reward_extra_infos_dict['reward'])}")
+            #print(f"len reward_extra_infos_dict['reward']: {len(reward_extra_infos_dict['reward'])}")
             if "reward_extra_info" in result:
                 for key, lst in result["reward_extra_info"].items():
                     reward_extra_infos_dict[key].extend(lst)
@@ -1221,7 +1249,7 @@ class RayPPOTrainer:
                         if self.config.reward_model.launch_reward_fn_async:
                             future_reward = compute_reward_async.remote(data=batch, reward_fn=self.reward_fn)
                         else:
-                            reward_tensor, reward_extra_infos_dict = compute_reward(batch, self.reward_fn)
+                            reward_tensor, reward_extra_infos_dict = compute_reward(batch, self.reward_fn) #here cal reward
 
                     # recompute old_log_probs
                     with marked_timer("old_log_prob", timing_raw, color="blue"):
@@ -1280,6 +1308,9 @@ class RayPPOTrainer:
                         if self.config.reward_model.launch_reward_fn_async:
                             reward_tensor, reward_extra_infos_dict = ray.get(future_reward)
                         batch.batch["token_level_scores"] = reward_tensor
+                        #process_rewards = reward_extra_infos_dict['process_rewards'] # add process_rewards
+                        process_rewards = reward_extra_infos_dict.pop("process_rewards", None) # add process_rewards
+                        has_answer_states = reward_extra_infos_dict.pop("has_answer_states", None) # add has_answer_states
 
                         if reward_extra_infos_dict:
                             batch.non_tensor_batch.update({k: np.array(v) for k, v in reward_extra_infos_dict.items()})
@@ -1307,8 +1338,13 @@ class RayPPOTrainer:
                             num_repeat=self.config.actor_rollout_ref.rollout.n,
                             norm_adv_by_std_in_grpo=norm_adv_by_std_in_grpo,
                             config=self.config.algorithm,
+                            process_rewards = process_rewards if process_rewards else None,
+                            has_answer_states = has_answer_states if has_answer_states else None
                         )
 
+                    #print(batch.non_tensor_batch)
+                    #input("press")
+                    
                     # update critic
                     if self.use_critic:
                         with marked_timer("update_critic", timing_raw, color="pink"):

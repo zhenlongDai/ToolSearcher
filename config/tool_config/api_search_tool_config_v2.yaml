@@ -17,7 +17,7 @@ tools:
           properties:
             category:
               type: string
-              description: Optional category to filter the tool's API documents. If set to "all", searches across all categories.
+              description: Optional category to filter the tool's API documents.  If set to "all" or None, searches across all categories.
             query:
               type: string
               description: A fully-formed semantic query. The tool will return the top searched results from the tools' API documentation for the query.

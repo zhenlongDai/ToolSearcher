@@ -42,6 +42,11 @@ def compute_F1_score(pred, target):
   precision = tp / (tp + fp) if tp + fp > 0 else 0.0
   recall    = tp / (tp + fn) if tp + fn > 0 else 0.0
   f1 = 2 * precision * recall / (precision + recall) if precision + recall > 0 else 0.0
+#   print("----------")
+#   print(precision)
+#   print(recall)
+#   print(f1)
+#   print("----------")
   return f1
 
 def compute_tool_list_score(solution_str, ground_truth):
@@ -61,7 +66,7 @@ def compute_tool_list_score(solution_str, ground_truth):
     
 
 
-def compute_score(solution_str, ground_truth :list[str]):
+def compute_score(solution_str, ground_truth :list[str], apis_in_search_process:set):
     """The scoring function for exact match (EM).
 
     Args:
@@ -69,15 +74,31 @@ def compute_score(solution_str, ground_truth :list[str]):
         ground_truth: the ground truth
     """
     score, answer = compute_tool_list_score(solution_str=solution_str, ground_truth = ground_truth)
-    do_print = random.randint(1, 64) == 1
+    #caluate the ratio of answer in apis_in_search_process
+    # apis_in_search_process mybe is empty
+    if len(answer) > 0 and len(apis_in_search_process) > 0:
+        selection_from_search_ratio = len(set(answer) & apis_in_search_process) / len(apis_in_search_process)
+    else:
+        selection_from_search_ratio = 0.0
 
-    if do_print:
-        print("--------------------------------")
-        print(f"Golden answers: {ground_truth}")
-        if answer is not None:
-            print(f"Extracted answer is not None: {answer}")
-        else:
-            print("Extracted answer: None!")
-        print(f"Solution string: {solution_str}")
-        print(f"score: {score}")
-    return score
+    if len(answer) > 0:
+        selection_from_gt_ratio = len(set(answer) & set(ground_truth)) / len(ground_truth)
+    else:
+        selection_from_gt_ratio = 0.0   
+
+    #do_print = random.randint(1, 64) == 1
+
+    # #if do_print:
+    # print("--------------------------------")
+    # print(f"Golden answers: {ground_truth}")
+    # if answer is not None:
+    #     print(f"Extracted answer is not None: {answer}")
+    # else:
+    #     print("Extracted answer: None!")
+    # print(f"Solution string: {solution_str}")
+    # print(f"score: {score}")
+
+    return { "tool_selection_score": score, 
+             "selection_from_search_ratio": selection_from_search_ratio, 
+             "selection_from_gt_ratio": selection_from_gt_ratio
+            }

@@ -181,7 +181,23 @@ def compute_data_metrics(batch: DataProto, use_critic: bool = True) -> dict[str,
         metrics["category_num/min"] = category_num.min()
         metrics["category_num/max"] = category_num.max()
         metrics["category_num/mean"] = category_num.mean()
-    
+    if "search_ratios" in batch.non_tensor_batch:
+        search_ratios = batch.non_tensor_batch["search_ratios"]
+        metrics["search_ratios/min"] = search_ratios.min()
+        metrics["search_ratios/max"] = search_ratios.max()
+        metrics["search_ratios/mean"] = search_ratios.mean()
+    #selection_from_search_ratio, selection_from_gt_ratios
+    if "selection_from_search_ratio" in batch.non_tensor_batch:
+        selection_from_search_ratio = batch.non_tensor_batch["selection_from_search_ratio"]
+        metrics["selection_from_search_ratio/min"] = selection_from_search_ratio.min()
+        metrics["selection_from_search_ratio/max"] = selection_from_search_ratio.max()
+        metrics["selection_from_search_ratio/mean"] = selection_from_search_ratio.mean()
+    if "selection_from_gt_ratios" in batch.non_tensor_batch:
+        selection_from_gt_ratios = batch.non_tensor_batch["selection_from_gt_ratios"]
+        metrics["selection_from_gt_ratios/min"] = selection_from_gt_ratios.min()
+        metrics["selection_from_gt_ratios/max"] = selection_from_gt_ratios.max()
+        metrics["selection_from_gt_ratios/mean"] = selection_from_gt_ratios.mean()
+        
     return metrics
 
 

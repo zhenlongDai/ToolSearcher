@@ -29,6 +29,7 @@ import torch
 
 import verl.utils.torch_functional as verl_F
 from verl.trainer.config import AlgoConfig
+from verl.utils.toolplan.adv_compute import get_advantage_reward_tensor, debug_print_tool_plan_by_group
 
 POLICY_LOSS_REGISTRY = {}
 
@@ -126,7 +127,7 @@ class AdvantageEstimator(str, Enum):
     OPO = "opo"
     GRPO_PASSK = "grpo_passk"
     GPG = "gpg"
-
+    TOOL_PLAN = "tool_plan"
 
 class AdaptiveKLController:
     """
@@ -665,6 +666,182 @@ def compute_gpg_outcome_advantage(
         scores = scores.unsqueeze(-1) * response_mask
 
     return scores, scores
+
+
+def tool_selection_adv_reward_fuction( 
+    token_level_rewards: torch.Tensor,
+    index: np.ndarray,
+    epsilon: float = 1e-6,
+    norm_adv_by_std_in_grpo: bool = True,
+    config: Optional[AlgoConfig] = None,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Compute advantage for tool_selection, operating only on Outcome reward
+    (with only one scalar reward for each response).
+
+    Args:
+        token_level_rewards: `(torch.Tensor)`
+            shape is (bs)
+        index: `(np.ndarray)`
+            index array for grouping
+        epsilon: `(float)`
+            small value to avoid division by zero
+        norm_adv_by_std_in_grpo: `(bool)`
+            whether to scale the GRPO advantage
+        config: `(Optional[AlgoConfig])`
+            algorithm configuration object
+
+    Returns:
+        advantages: `(torch.Tensor)`
+            shape is (bs, response_length)
+    """
+    scores = token_level_rewards
+
+    id2score = defaultdict(list)
+    id2mean = {}
+    id2std = {}
+
+    with torch.no_grad():
+        bsz = scores.shape[0]
+        for i in range(bsz):
+            id2score[index[i]].append(scores[i])
+        for idx in id2score:
+            if len(id2score[idx]) == 1:
+                id2mean[idx] = torch.tensor(0.0)
+                id2std[idx] = torch.tensor(1.0)
+            elif len(id2score[idx]) > 1:
+                id2mean[idx] = torch.mean(torch.tensor(id2score[idx]))
+                id2std[idx] = torch.std(torch.tensor([id2score[idx]]))
+            else:
+                raise ValueError(f"no score in prompt index: {idx}")
+        for i in range(bsz):
+            if norm_adv_by_std_in_grpo:
+                scores[i] = (scores[i] - id2mean[index[i]]) / (id2std[index[i]] + epsilon)
+            else:
+                scores[i] = scores[i] - id2mean[index[i]]
+
+    return scores
+
+@register_adv_est(AdvantageEstimator.TOOL_PLAN) 
+def compute_tool_plan_advantage(
+    token_level_rewards: list[torch.Tensor],
+    process_rewards: list[list],
+    has_answer_states: list,
+    response_mask: torch.Tensor,
+    index: np.ndarray,
+    epsilon: float = 1e-6,
+    norm_adv_by_std_in_grpo: bool = True,
+    config: Optional[AlgoConfig] = None,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Compute advantage for tool planer
+
+    Args:
+        token_level_rewards: `list[(torch.Tensor)]`
+            size is bs
+        process_rewards: 
+            `list[list]`
+        has_answer_states:
+            len is bs , item's type is boolean
+        response_mask: `(torch.Tensor)`
+            shape is (bs, response_length)
+        index: `(np.ndarray)`
+            index array for grouping
+        epsilon: `(float)`
+            small value to avoid division by zero
+        norm_adv_by_std_in_grpo: `(bool)`
+            whether to scale the GRPO advantage
+        config: `(Optional[AlgoConfig])`
+            algorithm configuration object
+
+    Returns:
+        advantages: `(torch.Tensor)`
+            shape is (bs, response_length)
+        Returns: `(torch.Tensor)`
+            shape is (bs, response_length)
+    """
+    
+    tool_selection_adv_reward = tool_selection_adv_reward_fuction(token_level_rewards, index, epsilon, norm_adv_by_std_in_grpo, config)
+
+    scores = []
+    final_scores = []
+    final_adv_list = []
+    device = response_mask.device
+
+    for pr in process_rewards:
+        if len(pr) == 0:
+            scores.append(None)  # None denotes `empty`
+        else:
+            scores.append(torch.tensor(pr, dtype=torch.float32, device=response_mask.device))
+ 
+    id2score_list: Dict[int, List[torch.Tensor]] = defaultdict(list)
+    id2mean = {}
+    id2std = {}
+    bsz = response_mask.shape[0]
+
+    for i in range(bsz):
+        grp_id = index[i]
+        if scores[i] is not None:   
+            id2score_list[grp_id].append(scores[i])
+
+    with torch.no_grad():
+        for grp_id in set(index.tolist()):
+            group_scores = id2score_list.get(grp_id, [])  
+            if len(group_scores) <= 1:
+                id2mean[grp_id] = torch.tensor(0.0, device=device, dtype=torch.float32)
+                id2std[grp_id] = torch.tensor(1.0, device=device, dtype=torch.float32)
+            else:
+                concat_scores = torch.cat(group_scores, dim=0)  # [sum_len]
+                id2mean[grp_id] = concat_scores.mean()
+                id2std[grp_id] = concat_scores.std()
+
+        for i in range(bsz):
+            grp_id = index[i]
+            if scores[i] is not None:
+                if norm_adv_by_std_in_grpo:
+                    scores[i] = (scores[i] - id2mean[grp_id]) / (id2std[grp_id] + epsilon)
+                else:
+                    scores[i] = scores[i] - id2mean[grp_id]
+                if has_answer_states[i]:
+                    combined = torch.cat([scores[i], tool_selection_adv_reward[i].view(1)], dim=0) # the rewards of search process and result
+                else:
+                    combined = scores[i] # only process reward
+            else:
+                combined = tool_selection_adv_reward[i] # only the reward of result
+            final_scores.append(combined)
+        
+        assert len(final_scores) == bsz, f"final_scores = {final_scores}"
+
+        for i in range(bsz):
+            try:
+                final_adv = get_advantage_reward_tensor(response_mask[i], final_scores[i])
+            except AssertionError as e:
+                # 先打印提示
+                print(f"[WARN] get_advantage_reward_tensor failed on sample {i}:{index[i]} with AssertionError: {e}")
+                debug_print_tool_plan_by_group(
+                    token_level_rewards=token_level_rewards,
+                    process_rewards=process_rewards,
+                    has_answer_states=has_answer_states,
+                    response_mask=response_mask,
+                    index=index,
+                    final_adv_tensor=None,  # 如果此时还没算出来，可以先传 None
+                )
+                #中断训练，继续抛出异常
+                raise 
+            final_adv_list.append(final_adv)
+        final_adv_tensor = torch.stack(final_adv_list, dim=0)
+    
+    # debug_print_tool_plan_by_group(
+    #     token_level_rewards=token_level_rewards,
+    #     process_rewards=process_rewards,
+    #     has_answer_states=has_answer_states,
+    #     response_mask=response_mask,
+    #     index=index,
+    #     final_adv_tensor=final_adv_tensor,
+    # )
+    # input("press enter to continue")
+
+    return final_adv_tensor, final_adv_tensor
 
 
 def compute_rewards(token_level_scores, old_log_prob, ref_log_prob, kl_ratio):
