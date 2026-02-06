@@ -67,8 +67,9 @@ def cal_process_reward(single_data, ground_truth):
         if flag:
             available_ground_truth_set = available_ground_truth_set - match_api_names
             search_process_reward = float(1.0/event_turn)
-            for i in range(event_turn):
-                process_rewards.append(search_process_reward)
+            for i in range(event_turn-1):
+                process_rewards.append(0.0)
+            process_rewards.append(search_process_reward) #search_process_reward
             #reset event_turn to zero
             event_turn = 0
     
