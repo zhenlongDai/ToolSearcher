@@ -13,7 +13,7 @@ TRAIN_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data
 VAL_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data/eval.parquet"
 
 TOOL_CONFIG="$CONFIG_PATH/tool_config/api_search_tool_config.yaml"
-EXPERIMENT_NAME='qwen2.5-7b-instruct_tool_plan_group_gspo_v1' 
+EXPERIMENT_NAME='qwen2.5-7b-instruct_tool_plan_group_grpo_v1' 
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 #export WANDB_MODE=offline
@@ -24,13 +24,7 @@ python3 -m verl.trainer.main_ppo \
     --config-path="$CONFIG_PATH" \
     --config-name='tool_plan_multiturn_grpo' \
     reward_model.reward_manager=toolplan\
-    algorithm.adv_estimator=tool_plan \
-    actor_rollout_ref.actor.policy_loss.loss_mode=gspo\
-    actor_rollout_ref.actor.clip_ratio_low=0.0003 \
-    actor_rollout_ref.actor.clip_ratio_high=0.0004 \
-    actor_rollout_ref.actor.loss_agg_mode=seq-mean-token-mean\
-    actor_rollout_ref.actor.use_kl_loss=False \
-    actor_rollout_ref.actor.kl_loss_coef=0.0 \
+    algorithm.adv_estimator=tool_plan\
     data.train_batch_size=256 \
     data.val_batch_size=128 \
     data.max_prompt_length=4096 \
@@ -43,8 +37,10 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.actor.optim.lr=1e-6 \
     actor_rollout_ref.actor.optim.lr_warmup_steps_ratio=0.285 \
     actor_rollout_ref.model.use_remove_padding=True \
-    actor_rollout_ref.actor.ppo_mini_batch_size=256  \
+    actor_rollout_ref.actor.ppo_mini_batch_size=256 \
     actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=2 \
+    actor_rollout_ref.actor.use_kl_loss=True \
+    actor_rollout_ref.actor.kl_loss_coef=0.001 \
     actor_rollout_ref.actor.kl_loss_type=low_var_kl \
     actor_rollout_ref.actor.entropy_coeff=0 \
     actor_rollout_ref.model.enable_gradient_checkpointing=True \

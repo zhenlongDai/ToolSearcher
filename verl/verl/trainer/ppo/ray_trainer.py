@@ -219,7 +219,8 @@ def compute_advantage(
     num_repeat: int = 1,
     norm_adv_by_std_in_grpo: bool = True,
     config: Optional[AlgoConfig] = None,
-    process_rewards = None,
+    turns_tensors = None,
+    search_tensors = None, 
     has_answer_states = None
 ) -> DataProto:
     """Compute advantage estimates for policy optimization.
@@ -280,7 +281,8 @@ def compute_advantage(
         # Call compute_tool_plan_advantage with parameters matching its definition
         advantages, returns = core_algos.compute_tool_plan_advantage(
             token_level_rewards=data.batch["token_level_rewards"],
-            process_rewards= process_rewards,
+            turns_tensors= turns_tensors,
+            search_tensors= search_tensors,
             has_answer_states = has_answer_states,
             response_mask=tool_plan_calculation_mask,
             index=data.non_tensor_batch["uid"],
@@ -1308,10 +1310,13 @@ class RayPPOTrainer:
                         if self.config.reward_model.launch_reward_fn_async:
                             reward_tensor, reward_extra_infos_dict = ray.get(future_reward)
                         batch.batch["token_level_scores"] = reward_tensor
-                        #process_rewards = reward_extra_infos_dict['process_rewards'] # add process_rewards
-                        process_rewards = reward_extra_infos_dict.pop("process_rewards", None) # add process_rewards
+                        
+                        turns_tensors = reward_extra_infos_dict.pop("turns_tensors", None) # add turns_tensors
+                        search_tensors = reward_extra_infos_dict.pop("search_tensors", None) # add search_tensors
                         has_answer_states = reward_extra_infos_dict.pop("has_answer_states", None) # add has_answer_states
-
+                        #print(f"turns_tensors:{turns_tensors}")
+                        #print(f"search_tensors:{search_tensors}")
+                        #input("press")
                         if reward_extra_infos_dict:
                             batch.non_tensor_batch.update({k: np.array(v) for k, v in reward_extra_infos_dict.items()})
 
@@ -1338,10 +1343,11 @@ class RayPPOTrainer:
                             num_repeat=self.config.actor_rollout_ref.rollout.n,
                             norm_adv_by_std_in_grpo=norm_adv_by_std_in_grpo,
                             config=self.config.algorithm,
-                            process_rewards = process_rewards if process_rewards else None,
+                            turns_tensors = turns_tensors if turns_tensors else None,
+                            search_tensors = search_tensors if search_tensors else None,
                             has_answer_states = has_answer_states if has_answer_states else None
                         )
-
+            
                     #print(batch.non_tensor_batch)
                     #input("press")
                     

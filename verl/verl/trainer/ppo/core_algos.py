@@ -30,7 +30,7 @@ import torch
 import verl.utils.torch_functional as verl_F
 from verl.trainer.config import AlgoConfig
 from verl.utils.toolplan.adv_compute import get_advantage_reward_tensor, debug_print_tool_plan_by_group
-
+from verl.utils.toolplan.adv_compute import compute_groupwise_apiswise_adv_score
 POLICY_LOSS_REGISTRY = {}
 
 
@@ -280,8 +280,12 @@ def compute_grpo_outcome_advantage(
         Returns: `(torch.Tensor)`
             shape is (bs, response_length)
     """
-    scores = token_level_rewards.sum(dim=-1)
-
+    #print(f"{token_level_rewards}")
+    #input("press")
+    if token_level_rewards.dim() ==2:
+        scores = token_level_rewards.sum(dim=-1)
+    elif token_level_rewards.dim() == 1:
+        scores = token_level_rewards.clone()
     id2score = defaultdict(list)
     id2mean = {}
     id2std = {}
@@ -305,7 +309,8 @@ def compute_grpo_outcome_advantage(
             else:
                 scores[i] = scores[i] - id2mean[index[i]]
         scores = scores.unsqueeze(-1) * response_mask
-
+    #print(f"{scores}")
+    #input("press2")
     return scores, scores
 
 
@@ -722,10 +727,12 @@ def tool_selection_adv_reward_fuction(
 
     return scores
 
+
 @register_adv_est(AdvantageEstimator.TOOL_PLAN) 
 def compute_tool_plan_advantage(
     token_level_rewards: list[torch.Tensor],
-    process_rewards: list[list],
+    turns_tensors,
+    search_tensors,
     has_answer_states: list,
     response_mask: torch.Tensor,
     index: np.ndarray,
@@ -739,8 +746,10 @@ def compute_tool_plan_advantage(
     Args:
         token_level_rewards: `list[(torch.Tensor)]`
             size is bs
-        process_rewards: 
-            `list[list]`
+        turns_tensors: 
+            `list[tensor]` bs, each tensor is (the number of turns, number of ground truth api )
+        search_tensors: 
+            `list[tensor]`
         has_answer_states:
             len is bs , item's type is boolean
         response_mask: `(torch.Tensor)`
@@ -760,54 +769,33 @@ def compute_tool_plan_advantage(
         Returns: `(torch.Tensor)`
             shape is (bs, response_length)
     """
-    #print(token_level_rewards)
-    #print("1-------")
+
     tool_selection_adv_reward = tool_selection_adv_reward_fuction(token_level_rewards, index, epsilon, norm_adv_by_std_in_grpo, config)
-    #print(token_level_rewards)
-    #print("2-------")
-    scores = []
+
+    adv_scores = []
     final_scores = []
     final_adv_list = []
     device = response_mask.device
+    apiswise_adv_scores = compute_groupwise_apiswise_adv_score(search_tensors, index, epsilon)
 
-    for pr in process_rewards:
-        if len(pr) == 0:
-            scores.append(None)  # None denotes `empty`
+    
+    for turns_tensor, apiswise_adv_score in zip(turns_tensors, apiswise_adv_scores):
+        if turns_tensor is not None:
+            adv_score = (turns_tensor * apiswise_adv_score).max(dim=1).values  # shape (turns,)
         else:
-            scores.append(torch.tensor(pr, dtype=torch.float32, device=response_mask.device))
- 
-    id2score_list: Dict[int, List[torch.Tensor]] = defaultdict(list)
-    id2mean = {}
-    id2std = {}
+            adv_score = None 
+        adv_scores.append(adv_score)
+
     bsz = response_mask.shape[0]
 
-    for i in range(bsz):
-        grp_id = index[i]
-        if scores[i] is not None:   
-            id2score_list[grp_id].append(scores[i])
-
     with torch.no_grad():
-        for grp_id in set(index.tolist()):
-            group_scores = id2score_list.get(grp_id, [])  
-            if len(group_scores) <= 1:
-                id2mean[grp_id] = torch.tensor(0.0, device=device, dtype=torch.float32)
-                id2std[grp_id] = torch.tensor(1.0, device=device, dtype=torch.float32)
-            else:
-                concat_scores = torch.cat(group_scores, dim=0)  # [sum_len]
-                id2mean[grp_id] = concat_scores.mean()
-                id2std[grp_id] = concat_scores.std()
-
         for i in range(bsz):
             grp_id = index[i]
-            if scores[i] is not None:
-                if norm_adv_by_std_in_grpo:
-                    scores[i] = (scores[i] - id2mean[grp_id]) / (id2std[grp_id] + epsilon)
-                else:
-                    scores[i] = scores[i] - id2mean[grp_id]
+            if adv_scores[i] is not None:
                 if has_answer_states[i]:
-                    combined = torch.cat([scores[i], tool_selection_adv_reward[i].view(1)], dim=0) # the rewards of search process and result
+                    combined = torch.cat([adv_scores[i], tool_selection_adv_reward[i].view(1)], dim=0) # the rewards of search process and result
                 else:
-                    combined = scores[i] # only process reward
+                    combined = adv_scores[i] # only process reward
             else:
                 combined = tool_selection_adv_reward[i] # only the reward of result
             final_scores.append(combined)
@@ -822,7 +810,10 @@ def compute_tool_plan_advantage(
                 print(f"[WARN] get_advantage_reward_tensor failed on sample {i}:{index[i]} with AssertionError: {e}")
                 debug_print_tool_plan_by_group(
                     token_level_rewards=token_level_rewards,
-                    process_rewards=process_rewards,
+                    turns_tensors=turns_tensors, 
+                    apiswise_adv_scores=apiswise_adv_scores,
+                    search_tensors=search_tensors,
+                    adv_scores=adv_scores,
                     has_answer_states=has_answer_states,
                     response_mask=response_mask,
                     index=index,
@@ -835,7 +826,10 @@ def compute_tool_plan_advantage(
     
     # debug_print_tool_plan_by_group(
     #     token_level_rewards=token_level_rewards,
-    #     process_rewards=process_rewards,
+    #     turns_tensors=turns_tensors, 
+    #     apiswise_adv_scores=apiswise_adv_scores,
+    #     search_tensors=search_tensors,
+    #     adv_scores=adv_scores,
     #     has_answer_states=has_answer_states,
     #     response_mask=response_mask,
     #     index=index,
@@ -844,6 +838,129 @@ def compute_tool_plan_advantage(
     # input("press enter to continue")
 
     return final_adv_tensor, final_adv_tensor
+
+# @register_adv_est(AdvantageEstimator.TOOL_PLAN) 
+# def compute_tool_plan_advantage(
+#     token_level_rewards: list[torch.Tensor],
+#     process_rewards: list[list],
+#     has_answer_states: list,
+#     response_mask: torch.Tensor,
+#     index: np.ndarray,
+#     epsilon: float = 1e-6,
+#     norm_adv_by_std_in_grpo: bool = True,
+#     config: Optional[AlgoConfig] = None,
+# ) -> tuple[torch.Tensor, torch.Tensor]:
+#     """
+#     Compute advantage for tool planer
+
+#     Args:
+#         token_level_rewards: `list[(torch.Tensor)]`
+#             size is bs
+#         process_rewards: 
+#             `list[list]`
+#         has_answer_states:
+#             len is bs , item's type is boolean
+#         response_mask: `(torch.Tensor)`
+#             shape is (bs, response_length)
+#         index: `(np.ndarray)`
+#             index array for grouping
+#         epsilon: `(float)`
+#             small value to avoid division by zero
+#         norm_adv_by_std_in_grpo: `(bool)`
+#             whether to scale the GRPO advantage
+#         config: `(Optional[AlgoConfig])`
+#             algorithm configuration object
+
+#     Returns:
+#         advantages: `(torch.Tensor)`
+#             shape is (bs, response_length)
+#         Returns: `(torch.Tensor)`
+#             shape is (bs, response_length)
+#     """
+#     #print(token_level_rewards)
+#     #print("1-------")
+#     tool_selection_adv_reward = tool_selection_adv_reward_fuction(token_level_rewards, index, epsilon, norm_adv_by_std_in_grpo, config)
+#     #print(token_level_rewards)
+#     #print("2-------")
+#     scores = []
+#     final_scores = []
+#     final_adv_list = []
+#     device = response_mask.device
+
+#     for pr in process_rewards:
+#         if len(pr) == 0:
+#             scores.append(None)  # None denotes `empty`
+#         else:
+#             scores.append(torch.tensor(pr, dtype=torch.float32, device=response_mask.device))
+ 
+#     id2score_list: Dict[int, List[torch.Tensor]] = defaultdict(list)
+#     id2mean = {}
+#     id2std = {}
+#     bsz = response_mask.shape[0]
+
+#     for i in range(bsz):
+#         grp_id = index[i]
+#         if scores[i] is not None:   
+#             id2score_list[grp_id].append(scores[i])
+
+#     with torch.no_grad():
+#         for grp_id in set(index.tolist()):
+#             group_scores = id2score_list.get(grp_id, [])  
+#             if len(group_scores) <= 1:
+#                 id2mean[grp_id] = torch.tensor(0.0, device=device, dtype=torch.float32)
+#                 id2std[grp_id] = torch.tensor(1.0, device=device, dtype=torch.float32)
+#             else:
+#                 concat_scores = torch.cat(group_scores, dim=0)  # [sum_len]
+#                 id2mean[grp_id] = concat_scores.mean()
+#                 id2std[grp_id] = concat_scores.std()
+
+#         for i in range(bsz):
+#             grp_id = index[i]
+#             if scores[i] is not None:
+#                 if norm_adv_by_std_in_grpo:
+#                     scores[i] = (scores[i] - id2mean[grp_id]) / (id2std[grp_id] + epsilon)
+#                 else:
+#                     scores[i] = scores[i] - id2mean[grp_id]
+#                 if has_answer_states[i]:
+#                     combined = torch.cat([scores[i], tool_selection_adv_reward[i].view(1)], dim=0) # the rewards of search process and result
+#                 else:
+#                     combined = scores[i] # only process reward
+#             else:
+#                 combined = tool_selection_adv_reward[i] # only the reward of result
+#             final_scores.append(combined)
+        
+#         assert len(final_scores) == bsz, f"final_scores = {final_scores}"
+
+#         for i in range(bsz):
+#             try:
+#                 final_adv = get_advantage_reward_tensor(response_mask[i], final_scores[i])
+#             except AssertionError as e:
+#                 # 先打印提示
+#                 print(f"[WARN] get_advantage_reward_tensor failed on sample {i}:{index[i]} with AssertionError: {e}")
+#                 debug_print_tool_plan_by_group(
+#                     token_level_rewards=token_level_rewards,
+#                     process_rewards=process_rewards,
+#                     has_answer_states=has_answer_states,
+#                     response_mask=response_mask,
+#                     index=index,
+#                     final_adv_tensor=None,  # 如果此时还没算出来，可以先传 None
+#                 )
+#                 #中断训练，继续抛出异常
+#                 raise 
+#             final_adv_list.append(final_adv)
+#         final_adv_tensor = torch.stack(final_adv_list, dim=0)
+    
+#     # debug_print_tool_plan_by_group(
+#     #     token_level_rewards=token_level_rewards,
+#     #     process_rewards=process_rewards,
+#     #     has_answer_states=has_answer_states,
+#     #     response_mask=response_mask,
+#     #     index=index,
+#     #     final_adv_tensor=final_adv_tensor,
+#     # )
+#     # input("press enter to continue")
+
+#     return final_adv_tensor, final_adv_tensor
 
 
 def compute_rewards(token_level_scores, old_log_prob, ref_log_prob, kl_ratio):
@@ -1158,7 +1275,7 @@ def compute_policy_loss_gspo(
     advantages: torch.Tensor,
     response_mask: torch.Tensor,
     loss_agg_mode: str = "seq-mean-token-mean",
-    config: Optional[DictConfig | ActorConfig] = None,
+    config: Optional[AlgoConfig] = None,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Compute the clipped policy objective and related metrics for GSPO.
@@ -1179,7 +1296,7 @@ def compute_policy_loss_gspo(
     """
 
     assert config is not None
-    assert isinstance(config, ActorConfig)
+    #assert isinstance(config, AlgoConfig)
     clip_ratio_low = config.clip_ratio_low if config.clip_ratio_low is not None else config.clip_ratio
     clip_ratio_high = config.clip_ratio_high if config.clip_ratio_high is not None else config.clip_ratio
 
@@ -1197,7 +1314,7 @@ def compute_policy_loss_gspo(
     log_seq_importance_ratio = log_prob - log_prob.detach() + negative_approx_kl_seq.detach().unsqueeze(-1)
     log_seq_importance_ratio = torch.clamp(log_seq_importance_ratio, max=10.0)  # clamp for numerical stability
 
-    # finaly exp() to remove logExpand commentComment on line R936Resolved
+    # finaly exp() to remove log
     seq_importance_ratio = torch.exp(log_seq_importance_ratio)
 
     pg_losses1 = -advantages * seq_importance_ratio
@@ -1205,14 +1322,14 @@ def compute_policy_loss_gspo(
     pg_losses = torch.maximum(pg_losses1, pg_losses2)
 
     # for GSPO, we need to aggregate the loss at the sequence level (seq-mean-token-mean)
-    pg_loss = agg_loss(loss_mat=pg_losses, loss_mask=response_mask, loss_agg_mode="seq-mean-token-mean")Expand commentComment on line R944Resolved
+    pg_loss = agg_loss(loss_mat=pg_losses, loss_mask=response_mask, loss_agg_mode="seq-mean-token-mean")
 
     # For compatibility, return zero for pg_clipfrac_lower (not used in standard GSPO)
     pg_clipfrac = verl_F.masked_mean(torch.gt(pg_losses2, pg_losses1).float(), response_mask)
     pg_clipfrac_lower = torch.tensor(0.0, device=pg_loss.device)
 
     ppo_kl = verl_F.masked_mean(-negative_approx_kl, response_mask)
-
+    #input("here")
     return pg_loss, pg_clipfrac, ppo_kl, pg_clipfrac_lower
     
 def compute_entropy_loss(logits, response_mask, loss_agg_mode: str = "token-mean"):

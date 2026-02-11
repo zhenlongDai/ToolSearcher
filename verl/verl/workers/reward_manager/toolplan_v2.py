@@ -24,7 +24,6 @@ from verl.utils.toolplan.search_process_util import search_process, parse_tools_
 from verl.utils.toolplan.check_util import check_turns_data
 import copy
 import random
-from verl.utils.toolplan.adv_compute import create_turns_and_cumulative_tensors
 #role:system/user/[assistant/tool] , 理想状态assistant结尾
 #content:
 def get_api_names(search_oject):
@@ -42,10 +41,8 @@ def have_ground_truth_in_tool_response(search_response: list[dict], available_gr
 
 def cal_process_reward(single_data, ground_truth):
 
-    ground_truth_list = copy.deepcopy(ground_truth)
-    id_map = {s: idx for idx, s in enumerate(ground_truth_list)}
-    available_ground_truth_set = set(ground_truth_list)
-    ground_truth_len = len(ground_truth_list)
+    temp_ground_truth = copy.deepcopy(ground_truth)
+    available_ground_truth_set = set(temp_ground_truth)
     #print_single_data(single_data)
 
     dialogue_view = _structure_single_dialogue(single_data)
@@ -61,7 +58,7 @@ def cal_process_reward(single_data, ground_truth):
             # last search process maybe not get the retrieval content due to the limited length of context
             #obj = parse_tools_from_retrieval_content(turn_view.content)
             
-    ids_per_turn = []
+    process_rewards = []
     event_turn = 0
     
     for seach_process in search_process_list:
@@ -69,19 +66,16 @@ def cal_process_reward(single_data, ground_truth):
         event_turn+=1
         if flag:
             available_ground_truth_set = available_ground_truth_set - match_api_names
-            current_api_list = [id_map[api_name] for api_name in match_api_names]
             search_process_reward = float(1.0/event_turn)
             for i in range(event_turn-1):
-                ids_per_turn.append([])
-            ids_per_turn.append(current_api_list) #search_process_reward
+                process_rewards.append(0.0)
+            process_rewards.append(search_process_reward) #search_process_reward
             #reset event_turn to zero
             event_turn = 0
     
     for i in range(event_turn): # add zero reward for left wrong search process
-        ids_per_turn.append([])
+        process_rewards.append(0.0)
 
-    turns_tensor, search_tensor = create_turns_and_cumulative_tensors(ground_truth_len,ids_per_turn)
-    
     if dialogue_view.turns[-1].role == "assistant" and dialogue_view.turns[-1].tool_calls == None:
         has_answer_state = True
     else:
@@ -91,8 +85,8 @@ def cal_process_reward(single_data, ground_truth):
     ground_truth_set = set(ground_truth)
     apis_in_search_process = ground_truth_set-available_ground_truth_set
     search_ratio = len(ground_truth_set-available_ground_truth_set)*1.0 / len(ground_truth_set)
-    #print(turns_tensor)
-    return turns_tensor, search_tensor, has_answer_state, search_ratio, apis_in_search_process
+    #print(process_rewards)
+    return process_rewards, has_answer_state, search_ratio, apis_in_search_process
             
     
 
@@ -128,8 +122,7 @@ class ToolplanRewardManager:
                 return data.batch["rm_scores"]
 
         reward_tensor = torch.zeros(data.batch["responses"].shape[0], dtype=torch.float32)
-        turns_tensors = []
-        search_tensors = []
+        process_rewards = []
         has_answer_states = []
         search_ratios = []
         selection_from_search_ratios=[]
@@ -164,7 +157,7 @@ class ToolplanRewardManager:
             num_turns = data_item.non_tensor_batch.get("__num_turns__", None)
             extra_info["num_turns"] = num_turns
 
-            turns_tensor, search_tensor, has_answer_state, search_ratio, apis_in_search_process = cal_process_reward(data_item.non_tensor_batch['messages']['messages'], ground_truth)
+            process_scores, has_answer_state, search_ratio, apis_in_search_process = cal_process_reward(data_item.non_tensor_batch['messages']['messages'], ground_truth)
             
            
             extra_info['apis_in_search_process'] = apis_in_search_process
@@ -195,8 +188,7 @@ class ToolplanRewardManager:
             #     print("response_mask", response_mask.tolist())
             #     raise ValueError("process_scores and has_answer_state are not consistent with response_mask")
                 
-            turns_tensors.append(turns_tensor)
-            search_tensors.append(search_tensor)
+            process_rewards.append(process_scores)
             has_answer_states.append(has_answer_state)
             reward_tensor[i] = reward
             search_ratios.append(search_ratio)
@@ -212,8 +204,7 @@ class ToolplanRewardManager:
                 print("[prompt]", prompt_str)
                 print("[response]", response_str)
                 print("[ground_truth]", ground_truth)
-                print("[turns_tensor]", turns_tensor)
-                print("[search_tensor]", search_tensor)
+                print("[process_scores]", process_scores)
                 print("[has_answer_state]", has_answer_state)
                 print("[search_ratio]", search_ratio)
                 print("[selection_from_search_ratio]", selection_from_search_ratio)
@@ -229,8 +220,7 @@ class ToolplanRewardManager:
                     print("[score]", score)
                 #input()
 
-        reward_extra_info['turns_tensors'] = turns_tensors
-        reward_extra_info['search_tensors'] = search_tensors
+        reward_extra_info['process_rewards'] = process_rewards
         reward_extra_info['has_answer_states'] = has_answer_states
         reward_extra_info['search_ratios'] = search_ratios
         reward_extra_info['selection_from_search_ratios'] = selection_from_search_ratios

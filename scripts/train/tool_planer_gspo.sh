@@ -13,7 +13,7 @@ TRAIN_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data
 VAL_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data/eval.parquet"
 
 TOOL_CONFIG="$CONFIG_PATH/tool_config/api_search_tool_config.yaml"
-EXPERIMENT_NAME='qwen2.5-7b-instruct_tool_plan_group_gspo_v1' 
+EXPERIMENT_NAME='qwen2.5-7b-instruct_only_gspo' 
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 #export WANDB_MODE=offline
@@ -24,7 +24,7 @@ python3 -m verl.trainer.main_ppo \
     --config-path="$CONFIG_PATH" \
     --config-name='tool_plan_multiturn_grpo' \
     reward_model.reward_manager=toolplan\
-    algorithm.adv_estimator=tool_plan \
+    algorithm.adv_estimator=grpo \
     actor_rollout_ref.actor.policy_loss.loss_mode=gspo\
     actor_rollout_ref.actor.clip_ratio_low=0.0003 \
     actor_rollout_ref.actor.clip_ratio_high=0.0004 \
