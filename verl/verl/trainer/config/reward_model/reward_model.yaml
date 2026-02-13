@@ -49,6 +49,10 @@ forward_max_token_len_per_gpu: ${critic.forward_max_token_len_per_gpu}
 # the reward manager can be set to prime for parallel verification.
 reward_manager: naive
 
+# add custom reward function kwargs to control the reward function and setting
+reward_kwargs:
+  reward_mode: gt_selection # name of the reward setting
+
 # Whether to launch custom reward function asynchronously during log_prob
 # custom reward function executed async on CPU, during log_prob
 launch_reward_fn_async: False

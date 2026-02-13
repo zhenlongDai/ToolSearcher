@@ -107,7 +107,7 @@ def default_compute_score(
         "G3",
     ]:
         from . import tool_plan_score
-        res = tool_plan_score.compute_score(solution_str, ground_truth, extra_info['apis_in_search_process'])
+        res = tool_plan_score.compute_score(solution_str, ground_truth, extra_info['apis_in_search_process'], extra_info['reward_mode'])
     else:
         raise NotImplementedError(f"Reward function is not implemented for {data_source=}")
 

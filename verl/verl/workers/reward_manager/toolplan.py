@@ -70,7 +70,7 @@ def cal_process_reward(single_data, ground_truth):
         if flag:
             available_ground_truth_set = available_ground_truth_set - match_api_names
             current_api_list = [id_map[api_name] for api_name in match_api_names]
-            search_process_reward = float(1.0/event_turn)
+            
             for i in range(event_turn-1):
                 ids_per_turn.append([])
             ids_per_turn.append(current_api_list) #search_process_reward
@@ -101,7 +101,7 @@ def cal_process_reward(single_data, ground_truth):
 class ToolplanRewardManager:
     """The reward manager."""
 
-    def __init__(self, tokenizer, num_examine, compute_score=None, reward_fn_key="data_source") -> None:
+    def __init__(self, tokenizer, num_examine, compute_score=None, reward_fn_key="data_source", reward_mode="gt_selection") -> None:
         """
         Initialize the ToolPlanRewardManager instance.
 
@@ -116,6 +116,7 @@ class ToolplanRewardManager:
         self.num_examine = num_examine  # the number of batches of decoded responses to print to the console
         self.compute_score = compute_score or default_compute_score
         self.reward_fn_key = reward_fn_key  # Store the key for accessing the data source
+        self.reward_mode = reward_mode
 
     def __call__(self, data: DataProto, return_dict=False):
         """We will expand this function gradually based on the available datasets"""
@@ -168,6 +169,7 @@ class ToolplanRewardManager:
             
            
             extra_info['apis_in_search_process'] = apis_in_search_process
+            extra_info['reward_mode'] = self.reward_mode
             result_dict = self.compute_score(
                 data_source=data_source,
                 solution_str=response_str,
@@ -185,15 +187,6 @@ class ToolplanRewardManager:
                     reward_extra_info[key].append(value)
             else:
                 reward = tool_selection_score
-
-            #response_mask = data_item.batch["response_mask"]
-            # flag = check_turns_data(process_scores, has_answer_state, response_mask)
-            # if flag == False:
-            #     print_single_data(data_item.non_tensor_batch['messages']['messages'])
-            #     print("process_scores", process_scores)
-            #     print("has_answer_state", has_answer_state)
-            #     print("response_mask", response_mask.tolist())
-            #     raise ValueError("process_scores and has_answer_state are not consistent with response_mask")
                 
             turns_tensors.append(turns_tensor)
             search_tensors.append(search_tensor)

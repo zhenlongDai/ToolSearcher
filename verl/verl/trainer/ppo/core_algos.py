@@ -775,13 +775,18 @@ def compute_tool_plan_advantage(
     adv_scores = []
     final_scores = []
     final_adv_list = []
-    device = response_mask.device
+    #device = response_mask.device
     apiswise_adv_scores = compute_groupwise_apiswise_adv_score(search_tensors, index, epsilon)
 
     
     for turns_tensor, apiswise_adv_score in zip(turns_tensors, apiswise_adv_scores):
         if turns_tensor is not None:
             adv_score = (turns_tensor * apiswise_adv_score).max(dim=1).values  # shape (turns,)
+            #mul = turns_tensor * apiswise_adv_score
+            #row_is_zero = (turns_tensor == 0).all(dim=1)
+            #row_max = mul.max(dim=1).values
+            #min_val = apiswise_adv_score.min()
+            #adv_score = torch.where(row_is_zero, min_val, row_max) # shape (turns,)
         else:
             adv_score = None 
         adv_scores.append(adv_score)
@@ -790,7 +795,7 @@ def compute_tool_plan_advantage(
 
     with torch.no_grad():
         for i in range(bsz):
-            grp_id = index[i]
+            #grp_id = index[i]
             if adv_scores[i] is not None:
                 if has_answer_states[i]:
                     combined = torch.cat([adv_scores[i], tool_selection_adv_reward[i].view(1)], dim=0) # the rewards of search process and result

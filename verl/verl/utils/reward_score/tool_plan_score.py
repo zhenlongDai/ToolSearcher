@@ -29,9 +29,12 @@ def parse_tool_list(tool_list_str: str):
       if item.strip()
   ]
 
-def compute_id_match(pred, target):
-    pred = set(pred)
-    gold = set(target)
+def compute_id_match(pred, gold):
+    if not isinstance(pred, set):
+        pred = set(pred)
+    if not isinstance(gold, set):
+        gold = set(gold)
+
     tp = len(pred & gold)      # 交集
     fp = len(pred - gold)      # 预测有但 gold 没有
     fn = len(gold - pred)      # gold 有但预测没有
@@ -42,11 +45,20 @@ def compute_F1_score(pred, target):
   precision = tp / (tp + fp) if tp + fp > 0 else 0.0
   recall    = tp / (tp + fn) if tp + fn > 0 else 0.0
   f1 = 2 * precision * recall / (precision + recall) if precision + recall > 0 else 0.0
-#   print("----------")
-#   print(precision)
-#   print(recall)
-#   print(f1)
-#   print("----------")
+  return f1
+
+def compute_Recall_score(pred, target):
+  tp, fp, fn = compute_id_match(pred, target)
+  recall    = tp / (tp + fn) if tp + fn > 0 else 0.0
+  return recall
+
+def compute_Precision_score(pred, target):
+  tp, fp, fn = compute_id_match(pred, target)
+  precision = tp / (tp + fp) if tp + fp > 0 else 0.0
+  return precision
+
+def compute_F1_score_by_recall_precision(recall, precision):
+  f1 = 2 * precision * recall / (precision + recall) if precision + recall > 0 else 0.0
   return f1
 
 def compute_tool_list_score(solution_str, ground_truth):
@@ -64,16 +76,31 @@ def compute_tool_list_score(solution_str, ground_truth):
   tool_list_F1_score = compute_F1_score(tool_list, ground_truth)
   return tool_list_F1_score + format_score, tool_list
     
+def compute_conditional_selection_score(solution_str, ground_truth, apis_in_search_process):
+  tool_list_str, format_score =  get_tool_list_str_and_format_score(solution_str)
+  tool_list = parse_tool_list(tool_list_str)
+  conditional_selection_recall = compute_Recall_score(tool_list, apis_in_search_process)
+  conditional_precision = compute_Precision_score(tool_list, apis_in_search_process)
+  conditional_selection_score = compute_F1_score_by_recall_precision(conditional_selection_recall, conditional_precision)
+  return conditional_selection_score + format_score, tool_list
 
-
-def compute_score(solution_str, ground_truth :list[str], apis_in_search_process:set):
+def compute_score(solution_str, ground_truth :list[str], apis_in_search_process:set, reward_mode:str):
     """The scoring function for exact match (EM).
 
     Args:
         solution_str: the solution text
         ground_truth: the ground truth
     """
-    score, answer = compute_tool_list_score(solution_str=solution_str, ground_truth = ground_truth)
+    if reward_mode == "gt_selection":
+        score, answer = compute_tool_list_score(solution_str=solution_str, ground_truth = ground_truth)
+    elif reward_mode == "conditional_selection":
+        score, answer = compute_conditional_selection_score(solution_str=solution_str, 
+                                                            ground_truth = ground_truth,
+                                                            apis_in_search_process = apis_in_search_process
+                                                            )
+    else:
+        raise ValueError(f"Unknown reward mode: {reward_mode}")
+
     #caluate the ratio of answer in apis_in_search_process
     # apis_in_search_process mybe is empty
     if len(answer) > 0 and len(apis_in_search_process) > 0:
