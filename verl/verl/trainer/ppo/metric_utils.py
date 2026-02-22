@@ -424,10 +424,29 @@ def process_validation_metrics(
             for var_name, var_vals in var2vals.items():
                 if isinstance(var_vals[0], str):
                     continue
+                # print(var_name)
+                # print(var_vals)
+                # input("start....")
+                # 直接覆盖，把 None 转为 0
+                if isinstance(var_vals, (list, np.ndarray)):
+                    var_vals = [v if v is not None else 0 for v in var_vals]
+                elif var_vals is None:
+                    var_vals = [0]
 
                 metric = {}
                 n_resps = len(var_vals)
-                metric[f"mean@{n_resps}"] = np.mean(var_vals)
+                try:
+                    #print("进入try")
+                    metric[f"mean@{n_resps}"] = np.mean(var_vals)
+                except Exception as e:
+                    print(f"[ERROR] np.mean(var_vals) failed for n_resps={n_resps}: {e}")
+                    print(f"var_vals: {var_vals}")
+                    print(f"type(var_vals): {type(var_vals)}")
+                    if isinstance(var_vals, (list, np.ndarray)):
+                        for idx, v in enumerate(var_vals):
+                            print(f"var_vals[{idx}]: {v}, type: {type(v)}")
+                    raise
+                #metric[f"mean@{n_resps}"] = np.mean(var_vals)
 
                 if n_resps > 1:
                     metric[f"std@{n_resps}"] = np.std(var_vals)

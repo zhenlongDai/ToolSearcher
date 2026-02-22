@@ -94,6 +94,7 @@ if __name__ == "__main__":
     parser.add_argument("--retrieval_api_docs_dataset_name", type=str, default="toolbench", help="Retrieval api docs dataset name")
     parser.add_argument("--retrieval_api_docs_dataset_path", type=str, default="path", help="Retrieval api docs dataset path")
     parser.add_argument("--retrieval_batch_size", type=int, default=128, help="Retrieval batch size")
+    parser.add_argument("--port", type=int, default=1350, help="port id")
     parser.add_argument("--debug_mode", type=bool, default=False, help="Use faiss gpu")
     
   
@@ -120,4 +121,4 @@ if __name__ == "__main__":
     # 2) Instantiate a global retriever so it is loaded once and reused.
     retriever_server = RetrieverServer(config)
     # 3) Launch the server. By default, it listens on http://127.0.0.1:8000
-    uvicorn.run(app, host="0.0.0.0", port=1350)
+    uvicorn.run(app, host="0.0.0.0", port=args.port)

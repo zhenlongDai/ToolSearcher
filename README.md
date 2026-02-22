@@ -32,3 +32,11 @@ pip install sentence_transformers==5.2.0
 pip install uvicorn fastapi
 pip install munch
 ```
+
+#### Inference
+
+##### Stage I: generate the content of the retrieval apis and plan
+1. preprocess test data to parquet files
+```bash 
+bash ./scripts/construct/construct_stabletoolbench_test_data.sh
+``` 

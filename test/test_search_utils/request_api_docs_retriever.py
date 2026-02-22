@@ -2,7 +2,7 @@ import requests
 import json
 
 # 你的服务地址
-URL = "http://127.0.0.1:1350/retrieve"
+URL = "http://127.0.0.1:1360/retrieve"
 
 # 构造输入数据
 payload = {

@@ -126,4 +126,3 @@ def construct_toolbench_category_infos(config: Config) -> list[SingleCategoryInf
         
     return result_list
 
-#def check_faiss_status_by_count()

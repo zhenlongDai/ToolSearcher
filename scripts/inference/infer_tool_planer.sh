@@ -16,24 +16,20 @@ TOOL_CONFIG="$CONFIG_PATH/tool_config/api_search_tool_config.yaml"
 EXPERIMENT_NAME='qwen2.5-7b-instruct_tool_plan_part_test' 
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-export WANDB_MODE=offline
+export WANDB_DISABLED=true
 export NCCL_P2P_DISABLE=1
 
 
 python -m test.test_verl_utils.SGLangRollout \
     --config-path="$CONFIG_PATH" \
     --config-name='tool_plan_multiturn_grpo' \
-    algorithm.adv_estimator=grpo \
-    data.train_batch_size=256 \
     data.val_batch_size=128 \
     data.max_prompt_length=4096 \
-    data.max_response_length=3000 \
+    data.max_response_length=10000 \
     data.filter_overlong_prompts=True \
     data.truncation='error' \
     data.return_raw_chat=True \
     actor_rollout_ref.model.path='/ossfs/workspace/hy65/dzl/model/Qwen2.5-7B-Instruct' \
-    actor_rollout_ref.actor.optim.lr=1e-6 \
-    actor_rollout_ref.actor.optim.lr_warmup_steps_ratio=0.285 \
     actor_rollout_ref.model.use_remove_padding=True \
     actor_rollout_ref.actor.ppo_mini_batch_size=256 \
     actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=4 \
@@ -54,21 +50,9 @@ python -m test.test_verl_utils.SGLangRollout \
     actor_rollout_ref.rollout.multi_turn.max_tool_response_length=768\
     actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=4 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
-    algorithm.use_kl_in_reward=False \
-    trainer.critic_warmup=0 \
-    trainer.val_before_train=False \
-    trainer.logger='["console","wandb"]' \
     trainer.project_name='tool_plan' \
     trainer.experiment_name="$EXPERIMENT_NAME" \
     trainer.n_gpus_per_node=8 \
     trainer.nnodes=1 \
-    trainer.save_freq=50 \
-    trainer.test_freq=50 \
-    data.train_files="$TRAIN_DATA" \
     data.val_files="$VAL_DATA"  \
-    actor_rollout_ref.rollout.multi_turn.tool_config_path="$TOOL_CONFIG" \
-    trainer.total_epochs=1 \
-    hydra.job_logging.root.level=WARN \
-    actor_rollout_ref.rollout.calculate_log_probs=True 
-    #actor_rollout_ref.rollout.trace.backend=weave
-    #actor_rollout_ref.rollout.mode=async 追踪过程
+    actor_rollout_ref.rollout.multi_turn.tool_config_path="$TOOL_CONFIG"

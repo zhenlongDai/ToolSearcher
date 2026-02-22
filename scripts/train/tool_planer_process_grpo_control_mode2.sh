@@ -13,10 +13,11 @@ TRAIN_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data
 VAL_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data/eval.parquet"
 
 TOOL_CONFIG="$CONFIG_PATH/tool_config/api_search_tool_config.yaml"
-EXPERIMENT_NAME='tool_plan_group_grpo_gt_selection_Negtive_Min' 
+EXPERIMENT_NAME='tool_plan_group_grpo_gt_selection_v3' 
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 #export WANDB_MODE=offline
+export WANDB_DISABLED=true
 export NCCL_P2P_DISABLE=1
 export HYDRA_FULL_ERROR=1
 
@@ -70,6 +71,7 @@ python3 -m verl.trainer.main_ppo \
     data.train_files="$TRAIN_DATA" \
     data.val_files="$VAL_DATA"  \
     actor_rollout_ref.rollout.multi_turn.tool_config_path="$TOOL_CONFIG" \
+    trainer.default_local_dir="/ossfs/workspace/hy58/dzl/data/checkpoints/tool_plan/$EXPERIMENT_NAME"\
     trainer.total_epochs=1 \
     actor_rollout_ref.rollout.free_cache_engine=True
     #actor_rollout_ref.rollout.trace.backend=weave

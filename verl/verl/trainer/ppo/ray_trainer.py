@@ -275,6 +275,7 @@ def compute_advantage(
         )
         data.batch["advantages"] = advantages
         data.batch["returns"] = returns
+
     elif adv_estimator == AdvantageEstimator.TOOL_PLAN:
         # Initialize the mask for TOOL_PLAN calculation
         tool_plan_calculation_mask = data.batch["response_mask"]
@@ -290,7 +291,9 @@ def compute_advantage(
         )
         data.batch["advantages"] = advantages
         data.batch["returns"] = returns
-
+        # print(advantages)
+        # print(returns)
+        # input("press enter to continue")
     else:
         # handle all other adv estimator type other than GAE and GRPO
         adv_estimator_fn = core_algos.get_adv_estimator_fn(adv_estimator)

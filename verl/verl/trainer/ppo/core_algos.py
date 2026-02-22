@@ -796,15 +796,21 @@ def compute_tool_plan_advantage(
     with torch.no_grad():
         for i in range(bsz):
             #grp_id = index[i]
-            if adv_scores[i] is not None:
-                if has_answer_states[i]:
-                    combined = torch.cat([adv_scores[i], tool_selection_adv_reward[i].view(1)], dim=0) # the rewards of search process and result
+            try:
+                if adv_scores[i] is not None:
+                    if has_answer_states[i]:
+                        combined = torch.cat([adv_scores[i], tool_selection_adv_reward[i].view(1)], dim=0) # the rewards of search process and result
+                    else:
+                        combined = adv_scores[i] # only process reward
                 else:
-                    combined = adv_scores[i] # only process reward
-            else:
-                combined = tool_selection_adv_reward[i] # only the reward of result
-            final_scores.append(combined)
-        
+                    combined = tool_selection_adv_reward[i] # only the reward of result
+                final_scores.append(combined)
+            except Exception as e:
+                print(f"[ERROR] Combining scores for index {i}: {e}")
+                print(f"adv_scores[{i}]: {adv_scores[i]}")
+                print(f"tool_selection_adv_reward[{i}]: {tool_selection_adv_reward[i]}")
+                print(f"has_answer_states[{i}]: {has_answer_states[i]}")
+                raise
         assert len(final_scores) == bsz, f"final_scores = {final_scores}"
 
         for i in range(bsz):

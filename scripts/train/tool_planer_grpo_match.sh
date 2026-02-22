@@ -13,10 +13,11 @@ TRAIN_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data
 VAL_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data/eval.parquet"
 
 TOOL_CONFIG="$CONFIG_PATH/tool_config/api_search_tool_config.yaml"
-EXPERIMENT_NAME='qwen2.5-7b-instruct_tool_plan_group_grpo_gt_match' 
+EXPERIMENT_NAME='qwen2.5-7b-instruct_only_grpo_match_v1' 
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 #export WANDB_MODE=offline
+#export WANDB_MODE=disabled
 export NCCL_P2P_DISABLE=1
 export HYDRA_FULL_ERROR=1
 
@@ -24,8 +25,8 @@ python3 -m verl.trainer.main_ppo \
     --config-path="$CONFIG_PATH" \
     --config-name='tool_plan_multiturn_grpo' \
     reward_model.reward_manager=toolplan\
+    algorithm.adv_estimator=grpo\
     reward_model.reward_kwargs.reward_mode='gt_match'\
-    algorithm.adv_estimator=tool_plan\
     data.train_batch_size=256 \
     data.val_batch_size=128 \
     data.max_prompt_length=4096 \
@@ -61,11 +62,12 @@ python3 -m verl.trainer.main_ppo \
     trainer.critic_warmup=0 \
     trainer.val_before_train=False \
     trainer.logger='["console","wandb"]' \
+    trainer.default_local_dir="/ossfs/workspace/hy58/dzl/data/checkpoints/tool_plan/$EXPERIMENT_NAME"\
     trainer.project_name='tool_plan' \
     trainer.experiment_name="$EXPERIMENT_NAME" \
     trainer.n_gpus_per_node=8 \
     trainer.nnodes=1 \
-    trainer.save_freq=56 \
+    trainer.save_freq=19 \
     trainer.test_freq=10 \
     data.train_files="$TRAIN_DATA" \
     data.val_files="$VAL_DATA"  \
@@ -75,5 +77,5 @@ python3 -m verl.trainer.main_ppo \
     #actor_rollout_ref.rollout.trace.backend=weave
     #actor_rollout_ref.rollout.mode=async 追踪过程
     #hydra.job_logging.root.level=WARN 
-
+    #trainer.default_local_dir="/ossfs/workspace/hy65/dzl/code/toolPlaner/checkpoints/tool_plan/$EXPERIMENT_NAME"\
 #python /ossfs/workspace/hy65/dzl/code/simple_gpu_forward.py

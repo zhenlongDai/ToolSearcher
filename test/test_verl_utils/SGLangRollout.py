@@ -9,10 +9,6 @@ import torch.distributed as dist
 import torch
 import os
 from  test.test_verl_utils.utils_sglang import initialize_global_process_group, clean_torchelastic_env
-# def setup_distributed():
-#     """Initialize distributed environment if not already initialized."""
-#     if not dist.is_initialized():
-#         dist.init_process_group(backend="nccl" if torch.cuda.is_available() else "gloo")
 from omegaconf import OmegaConf
 from verl import DataProto
 from verl.protocol import pad_dataproto_to_divisor, unpad_dataproto
@@ -56,7 +52,6 @@ def main_task(config):
     infer(config)
 
 def get_val_dataloader(val_dataset, val_batch_size, collate_fn, num_workers = 16):
-    #val_batch_size = self.config.data.val_batch_size  # Prefer config value if set
     val_dataloader = StatefulDataLoader(
         dataset=val_dataset,
         batch_size=val_batch_size,
@@ -67,48 +62,6 @@ def get_val_dataloader(val_dataset, val_batch_size, collate_fn, num_workers = 16
     )
     return val_dataloader
     
-def infer(
-    config,
-    trust_remote_code=False,
-):  
-
-    print(OmegaConf.to_container(config, resolve=True))  # resolve=True will eval symbol values
-    OmegaConf.resolve(config)
-    local_path = copy_to_local(config.actor_rollout_ref.model.path)
-    trust_remote_code = config.data.get("trust_remote_code", False)
-    tokenizer = hf_tokenizer(local_path, trust_remote_code=trust_remote_code)
-    processor = hf_processor(local_path, trust_remote_code=trust_remote_code)
-    
-    # read dataset. Note that the dataset should directly contain chat template format (e.g., a list of dictionary)
-    val_dataset = RLHFDataset(
-        data_files=config.data.val_files,
-        tokenizer=tokenizer,
-        processor=processor,
-        config=config.data,
-    )
-    print("=========val_dataset[0]=========")
-    #字典格式化输出
-    for key, value in val_dataset[0].items():
-        print(f"{key}:{value}")
-    print("data_len", len(val_dataset))
-    
-    
-    val_dataloader = get_val_dataloader(val_dataset, val_batch_size = 2, collate_fn = collate_fn)
-    
-    tokenizer.padding_side = "left"
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-
-    ray_cls_with_init = RayClassWithInitArgs(cls=ray.remote(ActorRolloutRefWorker), config=config.actor_rollout_ref, role="actor_rollout")
-    resource_pool = RayResourcePool(process_on_nodes=[config.trainer.n_gpus_per_node] * config.trainer.nnodes)
-    actor_rollout_wg = RayWorkerGroup(
-        resource_pool=resource_pool,
-        ray_cls_with_init=ray_cls_with_init,
-        profile_option=config.trainer.npu_profile.options,
-    )
-    actor_rollout_wg.init_model()
-    inference(val_dataloader, tokenizer, config, actor_rollout_wg, debug= True)
-
 def construct_input_data(test_batch, tokenizer, config, debug = False):
     batch_keys_to_pop = ["input_ids", "attention_mask", "position_ids"]
     non_tensor_batch_keys_to_pop = ["raw_prompt_ids"]
@@ -143,7 +96,7 @@ def inference(val_dataloader, tokenizer, config, actor_rollout_wg, val_reward_fn
     # Lists to collect samples for the table
     sample_inputs = []
     sample_outputs = []
-    sample_turns = []
+    
     count = 0
     for test_data in val_dataloader:
         print(f">>> start {count} to generate")
@@ -203,7 +156,47 @@ def inference(val_dataloader, tokenizer, config, actor_rollout_wg, val_reward_fn
         #   sample_turns.append(test_batch.non_tensor_batch["__num_turns__"])
         #break
 
+def infer(
+    config,
+    trust_remote_code=False,
+):  
+
+    print(OmegaConf.to_container(config, resolve=True))  # resolve=True will eval symbol values
+    OmegaConf.resolve(config)
+    local_path = copy_to_local(config.actor_rollout_ref.model.path)
+    trust_remote_code = config.data.get("trust_remote_code", False)
+    tokenizer = hf_tokenizer(local_path, trust_remote_code=trust_remote_code)
+    processor = hf_processor(local_path, trust_remote_code=trust_remote_code)
     
+    # read dataset. Note that the dataset should directly contain chat template format (e.g., a list of dictionary)
+    val_dataset = RLHFDataset(
+        data_files=config.data.val_files,
+        tokenizer=tokenizer,
+        processor=processor,
+        config=config.data,
+    )
+    print("=========val_dataset[0]=========")
+    #字典格式化输出
+    for key, value in val_dataset[0].items():
+        print(f"{key}:{value}")
+    print("data_len", len(val_dataset))
+    
+    
+    val_dataloader = get_val_dataloader(val_dataset, val_batch_size = 2, collate_fn = collate_fn)
+    
+    tokenizer.padding_side = "left"
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+
+    ray_cls_with_init = RayClassWithInitArgs(cls=ray.remote(ActorRolloutRefWorker), config=config.actor_rollout_ref, role="actor_rollout")
+    resource_pool = RayResourcePool(process_on_nodes=[config.trainer.n_gpus_per_node] * config.trainer.nnodes)
+    actor_rollout_wg = RayWorkerGroup(
+        resource_pool=resource_pool,
+        ray_cls_with_init=ray_cls_with_init,
+        profile_option=config.trainer.npu_profile.options,
+    )
+    actor_rollout_wg.init_model()
+    inference(val_dataloader, tokenizer, config, actor_rollout_wg, debug= True)    
 
     
 if __name__ == "__main__":

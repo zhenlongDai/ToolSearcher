@@ -75,7 +75,20 @@ def compute_tool_list_score(solution_str, ground_truth):
   tool_list = parse_tool_list(tool_list_str)
   tool_list_F1_score = compute_F1_score(tool_list, ground_truth)
   return tool_list_F1_score + format_score, tool_list
-    
+
+def compute_tool_match_score(solution_str, ground_truth):   
+  tool_list_str, format_score =  get_tool_list_str_and_format_score(solution_str)
+  tool_list = parse_tool_list(tool_list_str)
+  if not isinstance(tool_list, set):
+    tool_list = set(tool_list)
+  if not isinstance(ground_truth, set):
+    ground_truth = set(ground_truth)
+  if tool_list == ground_truth:
+    result_score = 1
+  else:
+    result_score = 0
+  return result_score + format_score, tool_list
+
 def compute_conditional_selection_score(solution_str, ground_truth, apis_in_search_process):
   tool_list_str, format_score =  get_tool_list_str_and_format_score(solution_str)
   tool_list = parse_tool_list(tool_list_str)
@@ -93,6 +106,8 @@ def compute_score(solution_str, ground_truth :list[str], apis_in_search_process:
     """
     if reward_mode == "gt_selection":
         score, answer = compute_tool_list_score(solution_str=solution_str, ground_truth = ground_truth)
+    elif reward_mode == "gt_match":
+        score, answer = compute_tool_match_score(solution_str=solution_str, ground_truth = ground_truth)
     elif reward_mode == "conditional_selection":
         score, answer = compute_conditional_selection_score(solution_str=solution_str, 
                                                             ground_truth = ground_truth,

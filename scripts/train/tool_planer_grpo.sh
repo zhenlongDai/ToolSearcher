@@ -61,11 +61,12 @@ python3 -m verl.trainer.main_ppo \
     trainer.critic_warmup=0 \
     trainer.val_before_train=False \
     trainer.logger='["console","wandb"]' \
+    trainer.default_local_dir="/ossfs/workspace/hy58/dzl/data/checkpoints/tool_plan/qwen2.5-7b-instruct_only_grpo_F1"\
     trainer.project_name='tool_plan' \
     trainer.experiment_name="$EXPERIMENT_NAME" \
     trainer.n_gpus_per_node=8 \
     trainer.nnodes=1 \
-    trainer.save_freq=50 \
+    trainer.save_freq=40 \
     trainer.test_freq=10 \
     data.train_files="$TRAIN_DATA" \
     data.val_files="$VAL_DATA"  \
@@ -75,5 +76,5 @@ python3 -m verl.trainer.main_ppo \
     #actor_rollout_ref.rollout.trace.backend=weave
     #actor_rollout_ref.rollout.mode=async 追踪过程
     #hydra.job_logging.root.level=WARN 
-
+    #trainer.default_local_dir="/ossfs/workspace/hy65/dzl/code/toolPlaner/checkpoints/tool_plan/$EXPERIMENT_NAME"\
 #python /ossfs/workspace/hy65/dzl/code/simple_gpu_forward.py

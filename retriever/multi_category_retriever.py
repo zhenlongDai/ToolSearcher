@@ -9,9 +9,10 @@ class MultiCategoryRetriever:
         self.retrievers = {}
         self.retrieval_api_docs_dataset_name = retriever_config.retrieval_api_docs_dataset_name
         self.retrieval_api_docs_dataset_path = retriever_config.retrieval_api_docs_dataset_path
-        if self.retrieval_api_docs_dataset_name == "toolbench":
+        if self.retrieval_api_docs_dataset_name == "toolbench" or self.retrieval_api_docs_dataset_name == "stabletoolbench":
             CategoryInfo_list = construct_toolbench_category_infos(retriever_config) 
-            
+       
+
         for CategoryInfo in CategoryInfo_list:
             category = CategoryInfo.category
             #input(CategoryInfo)
