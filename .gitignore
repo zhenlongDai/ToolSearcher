@@ -1,4 +1,5 @@
 data/*
+experiment_results/*
 tmp/*
 .sumi/*
 experiment/appworld_experiment/appworld/*
