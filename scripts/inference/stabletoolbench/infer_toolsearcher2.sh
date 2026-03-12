@@ -8,11 +8,11 @@ ulimit -n 65535
 PROJECT_DIR="$(pwd)"
 DATASET_NAME="stabletoolbench"
 CONFIG_PATH="$PROJECT_DIR/inference/config"
-METHOD_NAME="multiturn_search"
+METHOD_NAME="toolsearcher"
 VAL_DATA="./data/stabletoolbench_dataset/tool_selection.parquet"
 
 TOOL_CONFIG="$CONFIG_PATH/$DATASET_NAME/api_search_tool_config.yaml"
-EXPERIMENT_NAME='baseline_turns_15' 
+EXPERIMENT_NAME='toolsearcher_only_grpo_F1_ablation_search_turns_8_top20' 
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 export WANDB_DISABLED=true
@@ -24,25 +24,25 @@ python -m utils.inference_util.SGLangRollout \
     --config-name='tool_search_multiturn_infer' \
     data.val_batch_size=4 \
     data.max_prompt_length=1024 \
-    data.max_response_length=20000 \
+    data.max_response_length=25000 \
     data.filter_overlong_prompts=True \
     data.truncation='error' \
     data.return_raw_chat=True \
-    actor_rollout_ref.model.path='/ossfs/workspace/hy65/dzl/model/Qwen2.5-7B-Instruct' \
+    actor_rollout_ref.model.path='/ossfs/workspace/hy65/dzl/data/checkpoints/toolsearcher_only_grpo_F1_ablation_search' \
     actor_rollout_ref.model.use_remove_padding=True \
     actor_rollout_ref.actor.ppo_mini_batch_size=256 \
     actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=4 \
     actor_rollout_ref.model.enable_gradient_checkpointing=True \
     actor_rollout_ref.actor.fsdp_config.param_offload=False \
     actor_rollout_ref.actor.fsdp_config.optimizer_offload=False \
-    actor_rollout_ref.rollout.max_model_len=25000 \
+    actor_rollout_ref.rollout.max_model_len=30000 \
     actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=4 \
     actor_rollout_ref.rollout.tensor_model_parallel_size=2 \
     actor_rollout_ref.rollout.name=sglang \
     actor_rollout_ref.rollout.gpu_memory_utilization=0.5 \
     actor_rollout_ref.rollout.n=1 \
-    actor_rollout_ref.rollout.multi_turn.max_assistant_turns=15\
-    actor_rollout_ref.rollout.multi_turn.max_tool_response_length=768\
+    actor_rollout_ref.rollout.multi_turn.max_assistant_turns=8\
+    actor_rollout_ref.rollout.multi_turn.max_tool_response_length=4096\
     actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=4 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     trainer.project_name="$METHOD_NAME"\

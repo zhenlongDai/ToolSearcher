@@ -84,7 +84,10 @@ def constrcut_toolbench_api_doc(api_doc):
     elif 'test_endpoint' in api_doc:
         new_api_doc['method'] = api_doc['test_endpoint']
     new_api_doc = clean_json_strings(new_api_doc)
+    #print(new_api_doc)
     new_api_doc = dump_yaml(new_api_doc)
+    #print(repr(new_api_doc))
+    #input("press")
     return new_api_doc  
 
 def constrcut_toolbench_api_docs(api_docs):

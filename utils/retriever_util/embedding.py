@@ -87,7 +87,38 @@ class UnixCoderEmbedding(EmbeddingBase):
     
 
 
+@EmbeddingFactory.register("toolbench_IR_bert")
+class Qwen3Embedding(EmbeddingBase):
+    def __init__(self, model_name, model_path, **kwargs):
+        super().__init__(model_name, model_path, **kwargs)
+        # Load the model
+        self.model = SentenceTransformer(model_path).cuda().half()  
+        self.model.model_max_length = 512  
+        print(f"model_max_length = {self.model.model_max_length}")
+        config = AutoConfig.from_pretrained(model_path, padding_side='left')
+        self.dim = config.hidden_size
+        print("model_path:", model_path)
+        print("toolbench_IR_bert model loaded. dim:", self.dim)
 
+    
+    def get_embedding_dimension(self) -> int:
+        return self.dim
+    
+    def encode(self, texts):
+        with torch.no_grad():
+            sentence_embeddings = self.model.encode(texts)
+            sentence_embeddings = torch.tensor(sentence_embeddings)
+            sentence_embeddings = torch.nn.functional.normalize(sentence_embeddings, p=2, dim=1)
+            return sentence_embeddings
+
+    def get_query_embedding(self, query: str) -> torch.Tensor:
+        query_embedding = self.model.encode(query, prompt_name="query")
+        return query_embedding
+    
+    def get_query_embeddings(self, queries: list[str]) -> torch.Tensor:
+        query_embeddings = self.model.encode(queries, prompt_name="query")
+        return query_embeddings
+    
 # RetrieverFactory.register("APIPredictor")
 # class LLMRetriever(RetrieverBase):
 #     def get_sentence_embeddings(self, texts):

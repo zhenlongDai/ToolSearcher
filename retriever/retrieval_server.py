@@ -96,6 +96,8 @@ if __name__ == "__main__":
     parser.add_argument("--retrieval_batch_size", type=int, default=128, help="Retrieval batch size")
     parser.add_argument("--port", type=int, default=1350, help="port id")
     parser.add_argument("--debug_mode", type=bool, default=False, help="Use faiss gpu")
+    parser.add_argument("--max_token_len", type=int, default=300, help="token length of each doc")
+    parser.add_argument("--truncate", type=bool, default=False, help="whether truncate api doc")
     
   
 
@@ -115,9 +117,11 @@ if __name__ == "__main__":
         retrieval_api_docs_dataset_path=args.retrieval_api_docs_dataset_path,
         retrieval_batch_size=args.retrieval_batch_size,
         add_retireval_without_category=args.add_retireval_without_category,
-        debug_mode = args.debug_mode
+        debug_mode = args.debug_mode,
+        truncate = args.truncate,
+        max_token_len = args.max_token_len
     )
-       
+
     # 2) Instantiate a global retriever so it is loaded once and reused.
     retriever_server = RetrieverServer(config)
     # 3) Launch the server. By default, it listens on http://127.0.0.1:8000

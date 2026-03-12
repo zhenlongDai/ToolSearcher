@@ -1,30 +1,30 @@
 data_source: G1_category
-  Max: 10
+  Max: 5
   Min: 1
-  Avg: 4.21
+  Avg: 2.14
 --------------------
 data_source: G1_instruction
-  Max: 10
+  Max: 6
   Min: 1
-  Avg: 5.29
+  Avg: 2.28
 --------------------
 data_source: G1_tool
-  Max: 10
+  Max: 5
   Min: 1
-  Avg: 5.03
+  Avg: 2.27
 --------------------
 data_source: G2_category
-  Max: 12
+  Max: 6
   Min: 2
-  Avg: 5.87
+  Avg: 2.41
 --------------------
 data_source: G2_instruction
-  Max: 13
+  Max: 4
   Min: 2
-  Avg: 6.51
+  Avg: 2.44
 --------------------
 data_source: G3_instruction
-  Max: 9
-  Min: 3
-  Avg: 5.77
+  Max: 5
+  Min: 2
+  Avg: 2.95
 --------------------

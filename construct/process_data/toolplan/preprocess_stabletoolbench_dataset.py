@@ -14,11 +14,33 @@ import json
 system_content = "You are a super intelligent AI assistant that achieves my day-to-day tasks completely autonomously by interacting with apps/tools using their associated APIs on my behalf."
 
 
+def get_name(data):
+    #cat toolname and api_name
+    name = standardize(data['tool_name']) + "_" + standardize(data['api_name'])
+    return name
 
+def get_relevant_set(relevant_APIs):
+    #元素为「app_name」+「api_name」
+    relevant_set = set()
+    for api in relevant_APIs:
+        api_name = standardize(api[1])
+        toolapi_name = standardize(api[0]) + "_" + api_name
+        if toolapi_name not in relevant_set:
+            relevant_set.add(toolapi_name)
+    return relevant_set
 
+def fliter_relevant_api_list(api_list, relevant_apis):
+    #确保api_list中有relevant APIs中的元素，保留relevant APIs中的元素，删除其他元素
+    new_api_list = []
+    relevant_apis_set = get_relevant_set(relevant_apis)
+    for api_item in api_list:
+        toolapi_name = get_name(api_item)
+        if toolapi_name in relevant_apis_set:
+            new_api_list.append(api_item)
+    return new_api_list
 
 def constcut_api_ground_truth(onedata):
-    api_list = onedata['api_list']
+    api_list = fliter_relevant_api_list(onedata['api_list'], onedata['relevant APIs']) #important since test data is different with training data in format for inference.
     api_ground_truth = []
     for api in api_list:
         category_name = standardize_category(api['category_name'])
@@ -59,6 +81,8 @@ def process_single_data(oneData, prompt_template, data_source_tag, prompt_catego
         "split": None,
         "tools_kwargs": tools_kwargs,
     }
+    # print(oneData)
+    # input(extra_info)
 
     return pd.Series(
         {
@@ -110,7 +134,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="process dataset and save to Parquet.")
     parser.add_argument("--origin_data_dir",default="./experiment/stabletoolbench_experiment/StableToolBench/solvable_queries/test_instruction",help="Local directory to load the original Json files.",)
     parser.add_argument("--save_local_dir",default="./data/stabletoolbench_dataset",help="Local directory to save the processed Parquet files.",)
-    parser.add_argument("--prompt_template_path", default="./construct/process_data/prompt_template/prompt.txt", help="prompt_template_path")
+    parser.add_argument("--prompt_template_path", default="./construct/process_data/prompt_template/api_search_prompt.txt", help="prompt_template_path")
     parser.add_argument("--save_file_name",default="tool_selection",help="Local directory to save the processed Parquet files.",)
 
     args = parser.parse_args()

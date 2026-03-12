@@ -155,6 +155,7 @@ def change_name(name):
         name = "is_" + name
     return name
 
+# without using this function for procssing data
 def prepare_tool_info(info):
     category = info['category']
     standard_category = category.replace(" ", "_").replace(",", "_").replace("/", "_")

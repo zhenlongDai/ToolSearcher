@@ -1,10 +1,10 @@
 tools:
   - class_name: verl.tools.api_search_tool.APISearchTool
     config:
-      retrieval_service_url: http://127.0.0.1:1360/retrieve
+      retrieval_service_url: http://127.0.0.1:1350/retrieve
       num_workers: 120
       rate_limit: 120
-      topk: 30
+      topk: 5
       timeout: 300
       type: native
     tool_schema:

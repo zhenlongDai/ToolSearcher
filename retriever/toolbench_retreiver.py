@@ -63,7 +63,7 @@ def truncate_api_docs(
         truncated_text = tokenizer.decode(
             input_ids,
             skip_special_tokens=True,
-            clean_up_tokenization_spaces=True,
+            clean_up_tokenization_spaces=False,
         )
         return truncated_text
     if isinstance(standard_API_docs, str):
@@ -108,8 +108,11 @@ def construct_toolbench_category_infos(config: Config) -> list[SingleCategoryInf
             standand_API_docs = constrcut_toolbench_api_docs(API_docs)
            
             standand_API_docs = [str(api_doc) for api_doc in standand_API_docs]
-            standand_API_docs = truncate_api_docs(standand_API_docs, config.retrieval_model_path)
-
+            #print(repr(standand_API_docs[0]))
+            if config.truncate:
+                standand_API_docs = truncate_api_docs(standand_API_docs, config.retrieval_model_path, config.max_token_len)
+            #print(standand_API_docs[0])
+            #input("pressA")
             if config.add_retireval_without_category:
                 all_standand_API_docs.extend(standand_API_docs)
         else:

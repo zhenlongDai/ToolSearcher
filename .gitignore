@@ -3,6 +3,7 @@ experiment_results/*
 tmp/*
 .sumi/*
 experiment/appworld_experiment/appworld/*
+baseline_method/RAG/data/*
 outputs/*
 */__pycache__/*
 __pycache__/

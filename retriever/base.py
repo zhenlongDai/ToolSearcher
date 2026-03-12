@@ -18,7 +18,9 @@ class Config:
         retrieval_api_docs_dataset_path: str = "path", 
         retrieval_batch_size: int = 128,
         add_retireval_without_category: bool= True,
-        debug_mode: bool = False
+        debug_mode: bool = False,
+        truncate: bool = False,
+        max_token_len: int = 300,
     ):
         self.retrieval_model_name = retrieval_model_name
         self.retrieval_model_path = retrieval_model_path
@@ -32,6 +34,8 @@ class Config:
         self.retrieval_api_docs_dataset_path = retrieval_api_docs_dataset_path
         self.add_retireval_without_category = add_retireval_without_category
         self.debug_mode = debug_mode
+        self.truncate = truncate
+        self.max_token_len = max_token_len
         
 class SingleCategoryInformation:
     def __init__(

@@ -1,0 +1,101 @@
+import argparse
+import os
+import tempfile
+from utils.file_util import read_file
+from utils.string_util import render_template
+import pandas as pd
+from typing import Any, Literal, cast
+from utils.json_util import save_list_to_parquet, load_list_from_json, read_parquet_to_list
+from utils.file_util import get_all_json_file_name
+from utils.toolbench_util.format_util import get_toolbench_prompt_categories
+from utils.toolbench_util.format_util import standardize_category, standardize
+from utils.file_util import ensure_directory
+import json
+from tqdm import tqdm 
+import requests
+
+system_content = "You are a super intelligent AI assistant that achieves my day-to-day tasks completely autonomously by interacting with apps/tools using their associated APIs on my behalf."
+
+
+def send_request(request_item):
+    URL = f"http://127.0.0.1:{request_item['port']}/retrieve"
+    payload = {
+        "category": None,
+        "query": request_item["question"],
+        "topk": request_item["topk"],
+        "return_scores": True
+    }
+    
+    response = requests.post(URL, json=payload, timeout=300)
+    response_list = response.json()['result'][0]
+    return response_list
+
+def retrieval_topk_apis_content(query, topk, port):
+    response_list = send_request({"question": query, "topk": topk, "port": port})
+    apis_content = ""
+    for index, response_item in enumerate(response_list):
+        apis_content += f"doc {index+1}: " + response_item['api_doc'] + "\n"
+    return apis_content
+
+def print_qarquet_item(data):
+    data = data.to_dict()
+    print(data)
+    #print(json.dumps(data, indent=4, ensure_ascii=False))
+    
+
+def process_single_data(infoData, prompt_template, data_source_tag, retrieved_content):
+    question = infoData['extra_info']['question']
+    user_content = render_template(
+                prompt_template,
+                retrieved_content=retrieved_content,
+                question=question,
+            )
+    
+    prompt = [{"role": "system", "content": system_content}, {"role": "user", "content": user_content}]
+    reward_model = infoData['reward_model']
+    extra_info = infoData['extra_info']
+    extra_info['need_tools_kwargs'] = False
+    extra_info['tools_kwargs'] = False
+    
+    return pd.Series(
+        {
+            "data_source": data_source_tag,
+            "prompt": prompt,
+            "reward_model": reward_model,
+            "extra_info": extra_info,
+            "metadata": None,
+        }
+    )
+
+def process_stabletoolbench_parquet_data(args):
+    prompt_template_path = args.prompt_template_path
+    prompt_template = cast(str, read_file(prompt_template_path.replace("/", os.sep)))
+    info_data_list = read_parquet_to_list(args.origin_data_file)
+  
+    data_list = []
+    for info_data in tqdm(info_data_list):
+      data_source_tag_name = info_data['data_source']
+      retrieved_content=retrieval_topk_apis_content(info_data['extra_info']['question'], args.topk, args.port)
+      new_data = process_single_data(info_data, prompt_template, data_source_tag_name, retrieved_content)
+      if new_data is not None:
+          data_list.append(new_data)
+        
+    print(f"data_list: {len(data_list)}")
+    print("----------data[0]-----------")
+    print_qarquet_item(data_list[0])
+    print("----------data[0]-----------")
+    
+    save_list_to_parquet(data_list, os.path.join(args.save_local_dir, f"{args.save_file_name}_top{args.topk}.parquet"))
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="process dataset and save to Parquet.")
+    parser.add_argument("--origin_data_file",default="./data/stabletoolbench_dataset/tool_selection.parquet",help="Local directory to load the original Json files.",)
+    parser.add_argument("--save_local_dir",default="./baseline_method/RAG/data/stabletoolbench_dataset",help="Local directory to save the processed Parquet files.",)
+    parser.add_argument("--prompt_template_path", default="./baseline_method/RAG/prompt_template/api_search_prompt.txt", help="prompt_template_path")
+    parser.add_argument("--save_file_name",default="tool_selection",help="Local directory to save the processed Parquet files.",)
+    parser.add_argument("--port",default=1360,help="port of url.",)
+    parser.add_argument("--topk",default=40,help="port of url.",)
+    args = parser.parse_args()
+    print(args)
+    process_stabletoolbench_parquet_data(args)

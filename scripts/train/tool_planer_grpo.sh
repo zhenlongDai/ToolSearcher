@@ -13,7 +13,7 @@ TRAIN_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data
 VAL_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data/eval.parquet"
 
 TOOL_CONFIG="$CONFIG_PATH/tool_config/api_search_tool_config.yaml"
-EXPERIMENT_NAME='qwen2.5-7b-instruct_only_grpo_F1' 
+EXPERIMENT_NAME='toolsearcher_only_grpo_F1_ablation_search_v2' 
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 #export WANDB_MODE=offline
@@ -61,12 +61,12 @@ python3 -m verl.trainer.main_ppo \
     trainer.critic_warmup=0 \
     trainer.val_before_train=False \
     trainer.logger='["console","wandb"]' \
-    trainer.default_local_dir="/ossfs/workspace/hy58/dzl/data/checkpoints/tool_plan/qwen2.5-7b-instruct_only_grpo_F1"\
+    trainer.default_local_dir="/ossfs/workspace/temp_checkpoints/$EXPERIMENT_NAME"\
     trainer.project_name='tool_plan' \
     trainer.experiment_name="$EXPERIMENT_NAME" \
     trainer.n_gpus_per_node=8 \
     trainer.nnodes=1 \
-    trainer.save_freq=40 \
+    trainer.save_freq=56 \
     trainer.test_freq=10 \
     data.train_files="$TRAIN_DATA" \
     data.val_files="$VAL_DATA"  \

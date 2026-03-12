@@ -1,0 +1,14 @@
+Your task is to select the tool API names from the retrieved content that can solve the given task. 
+You should provide the final list of tool API names inside <tool_list> and </tool_list>. 
+Format each tool API name as [category_name].[tool_name].[api_name], and separate multiple names with commas. 
+Example: 
+<tool_list>
+Media.open_library.search_author,Media.movie_db.get_movie_details
+</tool_list>
+Please return API names based only on the retrieved content, and do not fabricate any.
+
+# Retrieved content:
+{retrieved_content}
+
+# Task Question:
+{question}
