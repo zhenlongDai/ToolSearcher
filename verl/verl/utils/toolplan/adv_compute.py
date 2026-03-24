@@ -85,7 +85,7 @@ def get_advantage_reward_tensor(response_mask, factors, debug=False):
         factors = factors[:num_segments]
   #assert num_segments == factors.shape[0], f"have {num_segments} segments \"1\"，but provide {factors.shape[0]} factors"
   # 4. 把段编号映射成系数
-  # 段号 0 用 0.0（或者 1.0，取决于你对 0 位置想要什么效果）
+  # 段号0的所有位置 用0.0（取决于你对response_mask的所有0位置想要什么效果，含义为0合适）
   factors_with_pad = torch.cat([torch.tensor([0.0], dtype=factors.dtype), factors])
   per_step_factor = factors_with_pad[segment_ids]     # 一维 [T] 的系数序列
 
@@ -201,8 +201,141 @@ def compute_groupwise_apiswise_adv_score(search_tensors, index, epsilon=1e-6):
     
     return result_list
 
+
+def get_search_response_mask_single(response_mask, turns_tensors, selection_mask_value):
+  if turns_tensors == None:
+    if selection_mask_value == 0:
+      search_response_mask = torch.zeros(response_mask.shape,dtype=response_mask.dtype,device=response_mask.device)
+    else:
+      search_response_mask = response_mask
+    return search_response_mask # no any process of searching
+  
+  #else
+  # 1. 找出每一段 1 的起点
+  padded = F.pad(response_mask, (1, 0), value=0)      # 左边补一个 0
+  starts = (padded[1:] == 1) & (padded[:-1] == 0)     # 哪些位置是 0->1
+  # 2. 给每个 1 打“段编号”：第 1 段为 1，第 2 段为 2，...
+  segment_ids = torch.zeros_like(response_mask, dtype=torch.long)
+  segment_ids[response_mask == 1] = torch.cumsum(starts[response_mask == 1], dim=0)
+   # 3. 检查段数是否等于 factors 个数
+  num_segments = int(segment_ids.max().item())
+  
+  is_mask = turns_tensors.max(dim=1).values
+
+  if is_mask.dim() == 0:
+        is_mask = is_mask.view(1)  # one number of tensor -> (1,)
+  if num_segments < is_mask.shape[0]:
+        is_mask = is_mask[:num_segments]
+  elif num_segments > is_mask.shape[0]:
+        pad_val = torch.tensor(selection_mask_value,dtype=is_mask.dtype, device=is_mask.device).view(1)
+        #zero = torch.zeros(1, dtype=is_mask.dtype, device=is_mask.device)
+        is_mask = torch.cat([is_mask, pad_val], dim=0)
+  #因为两个长度的计算方式不同，以response_mask的长度为准
+  factors_with_pad = torch.cat([torch.tensor([0.0], dtype=is_mask.dtype), is_mask])
+  search_response_mask = factors_with_pad[segment_ids]     # 一维 [T] 的系数序列
+
+  return search_response_mask
+
+
+def get_search_response_mask(response_mask: torch.Tensor,
+                             turns_tensors: torch.Tensor,
+                             selection_mask_value: float) -> torch.Tensor:
+    """
+    批量版本：
+    response_mask: [B, T] 0/1
+    turns_tensors: [B, T, ...]
+    返回: [B, T]
+    """
+
+    B, T = response_mask.shape
+    device = response_mask.device
+    out = []
+    for b in range(B):
+        resp_b = response_mask[b]          # [T]
+        turns_b = turns_tensors[b]        # [T, ...]
+        mask_b = get_search_response_mask_single(resp_b, turns_b, selection_mask_value)  # [T]
+        out.append(mask_b)
+        
+    search_response_mask = torch.stack(out, dim=0).to(device)  # [B, T]    
+    return search_response_mask
+
+
+
+
+def mask_selection_single(response_mask, turns_tensors, selection_mask_value):
+
+  if turns_tensors == None:
+    if selection_mask_value == 0:
+      mask_selection = torch.zeros(response_mask.shape,dtype=response_mask.dtype,device=response_mask.device)
+    else:
+      mask_selection = response_mask
+    return mask_selection # no any process of searching
+  
+  #else
+  # 1. 找出每一段 1 的起点
+  padded = F.pad(response_mask, (1, 0), value=0)      # 左边补一个 0
+  starts = (padded[1:] == 1) & (padded[:-1] == 0)     # 哪些位置是 0->1
+  # 2. 给每个 1 打“段编号”：第 1 段为 1，第 2 段为 2，...
+  segment_ids = torch.zeros_like(response_mask, dtype=torch.long)
+  segment_ids[response_mask == 1] = torch.cumsum(starts[response_mask == 1], dim=0)
+   # 3. 检查段数是否等于 factors 个数
+  num_segments = int(segment_ids.max().item())
+  
+  turns_mask = turns_tensors.max(dim=1).values
+  is_mask = torch.ones(turns_mask.shape,dtype=turns_mask.dtype,device=turns_mask.device)
+  if is_mask.dim() == 0:
+        is_mask = is_mask.view(1)  # one number of tensor -> (1,)
+  if num_segments < is_mask.shape[0]: # not use
+        is_mask = is_mask[:num_segments]
+  elif num_segments > is_mask.shape[0]:
+        pad_val = torch.tensor(selection_mask_value,dtype=is_mask.dtype, device=is_mask.device).view(1)
+        #zero = torch.zeros(1, dtype=is_mask.dtype, device=is_mask.device)
+        is_mask = torch.cat([is_mask, pad_val], dim=0)
+  #因为两个长度的计算方式不同，以response_mask的长度为准
+  factors_with_pad = torch.cat([torch.tensor([0.0], dtype=is_mask.dtype), is_mask])
+  mask_selection = factors_with_pad[segment_ids]     # 一维 [T] 的系数序列
+
+  return mask_selection
+
+def mask_selection(response_mask,
+                  turns_tensors,
+                  selection_mask_value) -> torch.Tensor:
+    """
+    批量版本：
+    response_mask: [B, T] 0/1
+    turns_tensors: [B, T, ...]
+    返回: [B, T]
+    """
+
+    B, T = response_mask.shape
+    device = response_mask.device
+    out = []
+    for b in range(B):
+        resp_b = response_mask[b]          # [T]
+        turns_b = turns_tensors[b]        # [T, ...]
+        try:
+          mask_b = mask_selection_single(resp_b, turns_b, selection_mask_value)  # [T]
+        except Exception as e:
+            # 打印详细调试信息
+            print(f"[mask_selection] Error at batch index {b}")
+            print(f"  response_mask[{b}].shape: {resp_b.shape}, values: {resp_b}")
+            print(f"  turns_tensors[{b}].shape: {turns_b}")
+            print(f"  selection_mask_value: {selection_mask_value}")
+            # 如果需要，还可以打印 dtype / device
+            print(f"  resp_b.dtype: {resp_b.dtype}, device: {resp_b.device}")
+            print(f"  turns_b.dtype: {turns_b.dtype}, device: {turns_b.device}")
+            # 再把原始异常抛出去，避免静默失败
+            raise e
+            
+        out.append(mask_b)
+        
+    search_response_mask = torch.stack(out, dim=0).to(device)  # [B, T]    
+    return search_response_mask
+
+
+
 def test_compute_groupwise_apiswise_adv_score():
-  # 测试样例
+  # 测试样例 search_tensors 代表ID为i处的i文档是否出现过
   search_tensors = [
       torch.tensor([0,1,0,1]),
       torch.tensor([1,1,0,1]),
@@ -214,6 +347,7 @@ def test_compute_groupwise_apiswise_adv_score():
   out = compute_groupwise_apiswise_adv_score(search_tensors, index)
   for o in out:
       print(o)
+
 def test_create_batch_indicator_tensor():
   # --- 示例 1: 正常情况 ---
   length = 8
@@ -239,7 +373,7 @@ def test_create_batch_indicator_tensor():
       
       print("\n2. 一维累积出现 Tensor (shape: {}):".format(cumulative_tensor.shape))
       print(cumulative_tensor)
-      # 预期输出: ID 0, 1, 2, 5, 7 出现过 -> [1., 1., 1., 0., 0., 1., 0., 1.]
+      # 预期输出: ID 0, 1, 2, 5, 7 出现过 -> [1., 1., 1., 0., 0., 1., 0., 1.] ID从0开始编号
 
   except AssertionError as e:
       print(e)
@@ -265,8 +399,31 @@ def test_adv():
     [1,1,1,1,1, 0,0,0,0, 1,1,1,1,1,1, 0,0,0,0,0, 1,1,1,1],
     dtype=torch.long
   )
-  factors = torch.tensor([0.2, 0.4], dtype=torch.float32)
-  get_advantage_ids(response_mask, factors)
-  
+  factors = torch.tensor([0.2, 0.4, 0.5], dtype=torch.float32)
+  result = get_advantage_reward_tensor(response_mask, factors)
+  print(result)
+
+def test_get_search_response_mask():
+  response_mask = torch.tensor(
+    [1,1,1,1,1, 0,0,0,0, 1,1,1,1,1,1, 0,0,0,0,0, 1,1,1,1],
+    dtype=torch.long
+  )
+  #factors = torch.tensor([0.0, 1.0, 0.0], dtype=torch.float32)
+  length = 8
+  ids_batch = [
+      [1, 5],
+      [],
+      [0, 5, 7],
+      #[2]
+  ]
+
+  batch_tensor, cumulative_tensor = create_turns_and_cumulative_tensors(length, ids_batch)
+  print(f"batch_tensor:{batch_tensor}")
+  print(f"response_mask:{response_mask}")
+  search_response_mask = get_search_response_mask_single(response_mask, batch_tensor)
+  print(search_response_mask)
+
 if __name__ == '__main__':
-  test_adv()
+  #test_adv()
+  test_get_search_response_mask()
+  #test_create_batch_indicator_tensor()

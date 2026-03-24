@@ -61,6 +61,8 @@ from verl.utils.seqlen_balancing import get_seqlen_balanced_partitions, log_seql
 from verl.utils.torch_functional import masked_mean
 from verl.utils.tracking import ValidationGenerationsLogger
 
+from verl.utils.toolplan.adv_compute import get_search_response_mask,mask_selection
+
 WorkerType = type[Worker]
 
 
@@ -289,11 +291,33 @@ def compute_advantage(
             index=data.non_tensor_batch["uid"],
             norm_adv_by_std_in_grpo=norm_adv_by_std_in_grpo,
         )
+        selection_mask_value = 1.0
+        search_response_mask = get_search_response_mask(tool_plan_calculation_mask, turns_tensors, selection_mask_value)
+        data.batch["response_mask"] = search_response_mask
         data.batch["advantages"] = advantages
         data.batch["returns"] = returns
-        # print(advantages)
-        # print(returns)
-        # input("press enter to continue")
+
+    elif adv_estimator == AdvantageEstimator.TOOL_SEARCH:
+        # Initialize the mask for TOOL_PLAN calculation
+        try:
+            tool_plan_calculation_mask = data.batch["response_mask"]
+            # Call compute_tool_plan_advantage with parameters matching its definition
+            advantages, returns = core_algos.compute_tool_search_advantage(
+                token_level_rewards=data.batch["token_level_rewards"],
+                turns_tensors= turns_tensors,
+                search_tensors= search_tensors,
+                has_answer_states = has_answer_states,
+                response_mask=tool_plan_calculation_mask,
+                index=data.non_tensor_batch["uid"],
+                norm_adv_by_std_in_grpo=norm_adv_by_std_in_grpo,
+            )
+            selection_mask_value = 0.0
+            search_response_mask = mask_selection(tool_plan_calculation_mask, turns_tensors, selection_mask_value)
+            data.batch["response_mask"] = search_response_mask
+            data.batch["advantages"] = advantages
+            data.batch["returns"] = returns
+        except Exception as e:
+             print(f"[ERROR]: {e}")
     else:
         # handle all other adv estimator type other than GAE and GRPO
         adv_estimator_fn = core_algos.get_adv_estimator_fn(adv_estimator)
@@ -404,6 +428,7 @@ class RayPPOTrainer:
             AdvantageEstimator.REINFORCE_PLUS_PLUS_BASELINE,
             AdvantageEstimator.GPG,
             AdvantageEstimator.TOOL_PLAN,
+            AdvantageEstimator.TOOL_SEARCH,
         ]:
             self.use_critic = False
         else:
@@ -1200,12 +1225,18 @@ class RayPPOTrainer:
                 with marked_timer("step", timing_raw):
                     # generate a batch
                     with marked_timer("gen", timing_raw, color="red"):
-                        if not self.async_rollout_mode:
-                            gen_batch_output = self.actor_rollout_wg.generate_sequences(gen_batch)
-                        else:
-                            gen_batch_output = self.async_rollout_manager.generate_sequences(gen_batch)
-                        timing_raw.update(gen_batch_output.meta_info["timing"])
-                        gen_batch_output.meta_info.pop("timing", None)
+                        try:
+                            if not self.async_rollout_mode:
+                                gen_batch_output = self.actor_rollout_wg.generate_sequences(gen_batch)
+                            else:
+                                gen_batch_output = self.async_rollout_manager.generate_sequences(gen_batch)
+                            timing_raw.update(gen_batch_output.meta_info["timing"])
+                            gen_batch_output.meta_info.pop("timing", None)
+                        except Exception as e:
+                            print(f"Error in generating sequences: {e}")
+                            raise e
+
+                    #input("press enter to continue")
 
                     if self.config.algorithm.adv_estimator == AdvantageEstimator.REMAX: #grpo不生效
                         with marked_timer("gen_max", timing_raw, color="purple"):
@@ -1337,20 +1368,21 @@ class RayPPOTrainer:
                         norm_adv_by_std_in_grpo = self.config.algorithm.get(
                             "norm_adv_by_std_in_grpo", True
                         )  # GRPO adv normalization factor
-
-                        batch = compute_advantage(
-                            batch,
-                            adv_estimator=self.config.algorithm.adv_estimator,
-                            gamma=self.config.algorithm.gamma,
-                            lam=self.config.algorithm.lam,
-                            num_repeat=self.config.actor_rollout_ref.rollout.n,
-                            norm_adv_by_std_in_grpo=norm_adv_by_std_in_grpo,
-                            config=self.config.algorithm,
-                            turns_tensors = turns_tensors if turns_tensors else None,
-                            search_tensors = search_tensors if search_tensors else None,
-                            has_answer_states = has_answer_states if has_answer_states else None
-                        )
-            
+                        try:
+                            batch = compute_advantage(
+                                batch,
+                                adv_estimator=self.config.algorithm.adv_estimator,
+                                gamma=self.config.algorithm.gamma,
+                                lam=self.config.algorithm.lam,
+                                num_repeat=self.config.actor_rollout_ref.rollout.n,
+                                norm_adv_by_std_in_grpo=norm_adv_by_std_in_grpo,
+                                config=self.config.algorithm,
+                                turns_tensors = turns_tensors if turns_tensors else None,
+                                search_tensors = search_tensors if search_tensors else None,
+                                has_answer_states = has_answer_states if has_answer_states else None
+                            )
+                        except Exception as e:
+                            print(f"[ERROR] 2: {e}")
                     #print(batch.non_tensor_batch)
                     #input("press")
                     

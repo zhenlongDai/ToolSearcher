@@ -90,6 +90,13 @@ def constrcut_toolbench_api_doc(api_doc):
     #input("press")
     return new_api_doc  
 
+def get_standardize_api_name(api_item):
+    category_name = api_item['category_name']
+    tool_name = standardize(api_item['tool_name'])
+    api_name = standardize(api_item['name'])
+    tool_api_name = f"{category_name}.{tool_name}.{api_name}"
+    return tool_api_name
+
 def constrcut_toolbench_api_docs(api_docs):
     new_api_docs = []
     for api_doc in api_docs:

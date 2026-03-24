@@ -5,8 +5,12 @@ def is_match(ground_list, predict_list):
 
 def cal_f1_recall_precision_from_seach_apis(ground_list, search_apis_list):
     predict_list = []
-    for search_apis in search_apis_list:
-      predict_list.extend(search_apis)
+    if isinstance(search_apis_list, list) and len(search_apis_list) > 0 and isinstance(search_apis_list[0], list):
+        for search_apis in search_apis_list:
+            predict_list.extend(search_apis)
+    else:
+        predict_list = list(search_apis_list)
+        
     return cal_f1_recall_precision(ground_list, predict_list)
     
 def cal_f1_recall_precision(ground_list, predict_list):

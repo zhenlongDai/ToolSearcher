@@ -12,6 +12,7 @@ class Qwen3Embedding(EmbeddingBase):
         # Load the model
         self.model = SentenceTransformer(model_path).cuda().half()  
         self.model.model_max_length = 512  
+        self.model.max_seq_length = 512
         print(f"model_max_length = {self.model.model_max_length}")
         config = AutoConfig.from_pretrained(model_path, padding_side='left')
         self.dim = config.hidden_size
@@ -94,6 +95,7 @@ class Qwen3Embedding(EmbeddingBase):
         # Load the model
         self.model = SentenceTransformer(model_path).cuda().half()  
         self.model.model_max_length = 512  
+        self.model.max_seq_length = 512
         print(f"model_max_length = {self.model.model_max_length}")
         config = AutoConfig.from_pretrained(model_path, padding_side='left')
         self.dim = config.hidden_size

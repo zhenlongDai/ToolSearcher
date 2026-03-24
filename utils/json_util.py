@@ -129,7 +129,7 @@ def save_list_to_json(lst, filepath):
     """
     # 检查文件是否已存在
     if os.path.exists(filepath):
-        raise FileAlreadyExistsError(f"文件 '{filepath}' 已存在。")
+        raise FileExistsError(f"文件 '{filepath}' 已存在。")
     
     ensure_dir(filepath)
     try:
@@ -205,7 +205,7 @@ def save_data_to_json(data, filepath):
     try:
         # 检查文件是否已存在
         if os.path.exists(filepath):
-            raise FileAlreadyExistsError(f"文件 '{filepath}' 已存在。")
+            raise FileExistsError(f"文件 '{filepath}' 已存在。")
         
         ensure_dir(filepath)
         with open(filepath, 'w', encoding='utf-8') as json_file:

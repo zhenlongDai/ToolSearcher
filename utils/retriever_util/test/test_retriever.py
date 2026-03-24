@@ -5,7 +5,8 @@ if __name__ == "__main__":
 
     embedding_kwargs = {
         "model_name": "Qwen3_Embedding",
-        "model_path": "/ossfs/workspace/hy65/dzl/model/retriever/Qwen3-Embedding-0.6B"
+        "model_path": "/ossfs/workspace/hy65/dzl/model/retriever/Qwen3-Embedding-0.6B",
+        "singleton": True
     }
     
     faiss_kwargs = {

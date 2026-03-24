@@ -4,6 +4,10 @@ tmp/*
 .sumi/*
 experiment/appworld_experiment/appworld/*
 baseline_method/RAG/data/*
+baseline_method/output_dir/*
+evaluation/eval_confus_score/stabletoolbench/*
+utils/vllm_util/test/output/*
+*/outputs/*
 outputs/*
 */__pycache__/*
 __pycache__/

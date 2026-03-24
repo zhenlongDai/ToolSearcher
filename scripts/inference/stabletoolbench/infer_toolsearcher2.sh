@@ -6,13 +6,14 @@ set -x
 ulimit -n 65535
 
 PROJECT_DIR="$(pwd)"
-DATASET_NAME="stabletoolbench"
 CONFIG_PATH="$PROJECT_DIR/inference/config"
-METHOD_NAME="toolsearcher"
 VAL_DATA="./data/stabletoolbench_dataset/tool_selection.parquet"
-
+DATASET_NAME="stabletoolbench"
 TOOL_CONFIG="$CONFIG_PATH/$DATASET_NAME/api_search_tool_config.yaml"
-EXPERIMENT_NAME='toolsearcher_only_grpo_F1_ablation_search_turns_8_top20' 
+
+
+METHOD_NAME="toolsearcher"
+EXPERIMENT_NAME='toolsearcher_correct_search_mask' 
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 export WANDB_DISABLED=true
@@ -28,7 +29,7 @@ python -m utils.inference_util.SGLangRollout \
     data.filter_overlong_prompts=True \
     data.truncation='error' \
     data.return_raw_chat=True \
-    actor_rollout_ref.model.path='/ossfs/workspace/hy65/dzl/data/checkpoints/toolsearcher_only_grpo_F1_ablation_search' \
+    actor_rollout_ref.model.path='/ossfs/workspace/hy57/dzl/checkpoints/toolsearcher_correct_search_mask' \
     actor_rollout_ref.model.use_remove_padding=True \
     actor_rollout_ref.actor.ppo_mini_batch_size=256 \
     actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=4 \

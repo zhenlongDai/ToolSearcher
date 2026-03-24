@@ -73,6 +73,7 @@ from verl.utils.profiler import DistProfiler, DistProfilerExtension, log_gpu_mem
 from verl.utils.profiler.performance import reduce_timing
 from verl.utils.py_functional import convert_to_regular_types
 from verl.workers.sharding_manager.fsdp_ulysses import FSDPUlyssesShardingManager
+import datetime
 
 logger = logging.getLogger(__file__)
 logger.setLevel(os.getenv("VERL_LOGGING_LEVEL", "WARN"))
@@ -123,6 +124,7 @@ class ActorRolloutRefWorker(Worker, DistProfilerExtension):
                 rank=rank,
                 world_size=world_size,
                 init_method=os.environ.get("DIST_INIT_METHOD", None),
+                timeout=datetime.timedelta(hours=2)
             )
 
         # build device mesh for FSDP
