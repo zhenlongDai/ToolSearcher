@@ -7,6 +7,13 @@ baseline_method/RAG/data/*
 baseline_method/output_dir/*
 evaluation/eval_confus_score/stabletoolbench/*
 utils/vllm_util/test/output/*
+experiment/appworld_experiment/src/retrieve_dataset/faiss_indexes/*
+
+
+#stabletoolbench
+experiment/stabletoolbench_experiment/StableToolBench/server/tool_response_cache
+experiment/stabletoolbench_experiment/StableToolBench/server/tools
+
 */outputs/*
 outputs/*
 */__pycache__/*
@@ -147,6 +154,4 @@ verl/wandb_offline
 
 
 
-#stabletoolbench
-experiment/stabletoolbench_experiment/StableToolBench/server/tool_response_cache
-experiment/stabletoolbench_experiment/StableToolBench/server/tools
+

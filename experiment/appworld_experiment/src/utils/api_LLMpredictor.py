@@ -49,8 +49,6 @@ class APILLMPredictor(_APIPredictor):  # type: ignore[misc]
             self.language_model.log_calls_to(lm_calls_log_file_path)
         
         prompt_messages = self.build_messages(task, include_cache_control=True)
-        #print(prompt_messages)
-        #input("Press Enter to continue...")
         output = self.language_model.generate(prompt_messages)
         predicted_output = output["content"].strip()
         predicted_apis = self.predicted_output_to_apis(task, predicted_output)

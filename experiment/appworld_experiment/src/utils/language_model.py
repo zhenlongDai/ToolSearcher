@@ -618,6 +618,7 @@ class LanguageModel:
             self.tool_parser = ToolParser.from_dict({"type": tool_parser_name})
         self.drop_reasoning_content = drop_reasoning_content
         self.lm_call = {True: cached_lm_call, False: non_cached_lm_call}[use_cache]
+        
         if api_key_env_name is not None:
             generation_kwargs["api_key"] = os.environ[api_key_env_name]
         if client_name == "openai":
@@ -647,6 +648,8 @@ class LanguageModel:
         generation_kwargs["api_type"] = api_type
         self.generation_kwargs: dict[str, Any] = generation_kwargs
         self.log_file_path: str | None = None
+
+        
 
     def generate(
         self,
@@ -689,6 +692,7 @@ class LanguageModel:
                 self.replace_empty_tool_calls_with_none(arguments)
                 self.maybe_drop_reasoning_content(arguments)
                 start_timestamp = freezegun_bypassed_datetime().isoformat()
+                
                 response = self.lm_call(**arguments)
                 end_timestamp = freezegun_bypassed_datetime().isoformat()
                 if response is None:
@@ -738,11 +742,23 @@ class LanguageModel:
                 retrial_exception = exception
                 if self.retry_after_n_seconds is None:
                     import traceback
-
                     print(traceback.format_exc())
                     exit(1)
+
                 print(f"Will try again in {self.retry_after_n_seconds} seconds.")
                 time.sleep(self.retry_after_n_seconds)
+                # import traceback
+                # print(f"Encountered RETRY_ERROR ({type(exception).__name__}): {exception}")
+                # print("==== RETRY_ERROR traceback ====")
+                # print(traceback.format_exc())
+                # retrial_exception = exception
+
+                # if self.retry_after_n_seconds is None:
+                #     # 不再这里打印 traceback，因为上面已经打过了
+                #     exit(1)
+
+                # print(f"Will try again in {self.retry_after_n_seconds} seconds.")
+                # time.sleep(self.retry_after_n_seconds)
 
         if retrial_exception:
             raise retrial_exception

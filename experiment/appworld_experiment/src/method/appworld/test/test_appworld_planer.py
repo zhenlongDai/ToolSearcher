@@ -25,15 +25,15 @@ def run_planer(planer, dataset_name):
         print(f"Processing Task ID: {task_id}, Instruction: {task.instruction}")
         generated_text, api_documentation_string, plan_prior_samples_retrieved_apis,instruction_predicted_apis = planer.generate_plan(is_sample_plans = True, instruction = task.instruction, app_descriptions = app_descriptions)
         #print("api_documentation_string:", api_documentation_string)
-        print("instruction_predicted_apis", instruction_predicted_apis)
-        print("Good set: not in instruction_predicted_apis but in plan prior retrieved apis:", set(plan_prior_samples_retrieved_apis) - set(instruction_predicted_apis))
+        #print("instruction_predicted_apis", instruction_predicted_apis)
+        #print("Good set: not in instruction_predicted_apis but in plan prior retrieved apis:", set(plan_prior_samples_retrieved_apis) - set(instruction_predicted_apis))
         predict_apis_set = set(plan_prior_samples_retrieved_apis) | set(instruction_predicted_apis)
-        print("len of retrieved docs:", len(predict_apis_set))
-        print("ground truth required apis:", task.ground_truth.required_apis)
-        print("both in ground truth and Good set:", set(task.ground_truth.required_apis) & (set(plan_prior_samples_retrieved_apis) - set(instruction_predicted_apis)))
-        print("lack apis:", set(task.ground_truth.required_apis) - predict_apis_set)
-        print(f"Generated Plan for Task ID {task_id}:\n{generated_text}\n")
-        input("Press Enter to see generated plan...")
+        #print("len of retrieved docs:", len(predict_apis_set))
+        #print("ground truth required apis:", task.ground_truth.required_apis)
+        #print("both in ground truth and Good set:", set(task.ground_truth.required_apis) & (set(plan_prior_samples_retrieved_apis) - set(instruction_predicted_apis)))
+        #print("lack apis:", set(task.ground_truth.required_apis) - predict_apis_set)
+        #print(f"Generated Plan for Task ID {task_id}:\n{generated_text}\n")
+        #input("Press Enter to see generated plan...")
 
 def save_all_apis(task: Task, file_path: str):
     api_docs_json = {}

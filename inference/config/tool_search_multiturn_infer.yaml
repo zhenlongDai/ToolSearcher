@@ -16,6 +16,7 @@ data:
 actor_rollout_ref:
   hybrid_engine: True
   rollout:
+    temperature: 1.0
     name: sglang
     multi_turn:
       enable: True

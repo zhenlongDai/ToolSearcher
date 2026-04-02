@@ -59,7 +59,7 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     algorithm.use_kl_in_reward=False \
     trainer.critic_warmup=0 \
-    trainer.val_before_train=False \
+    trainer.val_before_train=True \
     trainer.logger='["console","wandb"]' \
     trainer.project_name='tool_plan' \
     trainer.experiment_name="$EXPERIMENT_NAME" \
@@ -70,7 +70,7 @@ python3 -m verl.trainer.main_ppo \
     data.train_files="$TRAIN_DATA" \
     data.val_files="$VAL_DATA"  \
     actor_rollout_ref.rollout.multi_turn.tool_config_path="$TOOL_CONFIG" \
-    trainer.default_local_dir="/ossfs/workspace/checkpoints/$EXPERIMENT_NAME"\
+    trainer.default_local_dir="/ossfs/workspace/hy65/dzl/data/checkpoints/$EXPERIMENT_NAME"\
     trainer.total_epochs=1 \
     actor_rollout_ref.rollout.free_cache_engine=True
     #actor_rollout_ref.rollout.trace.backend=weave

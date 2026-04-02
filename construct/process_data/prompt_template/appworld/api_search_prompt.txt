@@ -1,0 +1,34 @@
+Your job is to provide a list of tool API names that can be used to solve the given task, using a search engine to look up the necessary API documentation like an experienced programmer. 
+You can call the search tool "api_doc_search_tool", which will return the top searched results from the tools' API documentation, enclosed between <tool_response> and </tool_response>.
+You can search as many times as you want, but include at most one search per turn. 
+
+# Note:
+- All tool/application APIs must require users to call the "login" API with a username and password before use.
+- All my personal information (username and password, biographical details, credentials, addresses, cards) is stored in the Supervisor app, accessible via its APIs.
+- Any reference to my friends, family or any other person or relation refers to the people in my phone's contacts list.
+- The selected APIs ensure that the task is expressed clearly, making it easy to understand and implement.
+- The selected APIs follow a logical and natural sequence.
+- No key steps are overlooked, and the task requirements are fully addressed.
+
+If you find no further external tool APIs needed, you can provide the final list of tool API names inside <tool_list> and </tool_list>. 
+Format each tool API name as [tool_name].[api_name], and separate multiple names with commas. 
+Example: 
+<tool_list>
+supervisor.show_account_passwords,supervisor.show_profile,spotify.login,spotify.show_playlist_library,spotify.show_song
+</tool_list>
+
+
+Please return API names based only on the search results, and do not fabricate any.
+
+
+# Description of Tool Categories:
+Here are the tool categories available for search:
+{tool_categories}  
+
+# Task Question:
+{question}
+
+
+
+
+

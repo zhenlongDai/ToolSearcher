@@ -1,5 +1,5 @@
 python -m utils.verl_util.model_merge \
     'merge' \
     --backend 'fsdp' \
-    --local_dir '/ossfs/workspace/temp_checkpoints/toolsearcher_correct_search_mask/global_step_56/actor'\
-    --target_dir '/ossfs/workspace/hy57/dzl/checkpoints/toolsearcher_correct_search_mask'
+    --local_dir '/ossfs/workspace/checkpoints/toolsearcher_s1_v1/global_step_56/actor'\
+    --target_dir '/ossfs/workspace/hy58/dzl/data/checkpoints/toolsearcher_s1_v1'

@@ -1,0 +1,15 @@
+App-wise API Descriptions:
+{required_apis_string}
+
+# Task Instruction
+{instruction}
+
+List all APIs that may be needed to complete this task. If you are unsure whether a certain API is useful, include it (prioritize high recall). However, do not include APIs that are clearly irrelevant or unrelated.
+
+Format each tool API name as [tool_name].[api_name], and separate multiple names with commas. 
+Example: 
+<tool_list>
+supervisor.show_account_passwords,supervisor.show_profile,spotify.login,spotify.show_playlist_library,spotify.show_song
+</tool_list>
+
+Now, list the APIs for the above task.

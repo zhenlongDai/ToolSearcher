@@ -13,7 +13,7 @@ TRAIN_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data
 VAL_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data/eval.parquet"
 
 TOOL_CONFIG="$CONFIG_PATH/tool_config/api_search_tool_config.yaml"
-EXPERIMENT_NAME='toolsearcher_stabletoolbench' 
+EXPERIMENT_NAME='qwen2.5-7b-instruct_tool_plan_group_grpo_gt_match' 
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 #export WANDB_MODE=offline
@@ -25,7 +25,7 @@ python3 -m verl.trainer.main_ppo \
     --config-path="$CONFIG_PATH" \
     --config-name='tool_plan_multiturn_grpo' \
     reward_model.reward_manager=toolplan\
-    reward_model.reward_kwargs.reward_mode='gt_selection'\
+    reward_model.reward_kwargs.reward_mode='gt_match'\
     algorithm.adv_estimator=tool_plan\
     data.train_batch_size=256 \
     data.val_batch_size=128 \
@@ -72,7 +72,7 @@ python3 -m verl.trainer.main_ppo \
     data.val_files="$VAL_DATA"  \
     actor_rollout_ref.rollout.multi_turn.tool_config_path="$TOOL_CONFIG" \
     trainer.default_local_dir="/ossfs/workspace/hy58/dzl/data/checkpoints/tool_plan/$EXPERIMENT_NAME"\
-    trainer.total_epochs=1 \
+    trainer.total_epochs=2 \
     actor_rollout_ref.rollout.free_cache_engine=True
     #actor_rollout_ref.rollout.trace.backend=weave
     #actor_rollout_ref.rollout.mode=async 追踪过程

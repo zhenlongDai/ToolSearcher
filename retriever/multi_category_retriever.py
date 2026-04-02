@@ -1,5 +1,6 @@
 from utils.retriever_util.retriever import FaissEmbeddingRetriever
 from retriever.toolbench_retreiver import construct_toolbench_category_infos
+from retriever.appworld_retreiver import construct_appworld_category_infos
 from retriever.base import Config
 from utils.toolbench_util.format_util import get_target_category
     
@@ -11,7 +12,8 @@ class MultiCategoryRetriever:
         self.retrieval_api_docs_dataset_path = retriever_config.retrieval_api_docs_dataset_path
         if self.retrieval_api_docs_dataset_name == "toolbench" or self.retrieval_api_docs_dataset_name == "stabletoolbench":
             CategoryInfo_list = construct_toolbench_category_infos(retriever_config) 
-       
+        elif self.retrieval_api_docs_dataset_name == "appworld":
+            CategoryInfo_list = construct_appworld_category_infos(retriever_config)
 
         for CategoryInfo in CategoryInfo_list:
             category = CategoryInfo.category
@@ -30,6 +32,8 @@ class MultiCategoryRetriever:
             category = "all"
         elif self.retrieval_api_docs_dataset_name == "toolbench":
                 category = get_target_category(category)
+        elif self.retrieval_api_docs_dataset_name == "appworld":
+                category = category
 
         if category not in self.retrievers:
             return [f"Category: [{category}] is not within the search scope"], [0]

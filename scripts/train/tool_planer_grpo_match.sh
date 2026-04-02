@@ -13,7 +13,7 @@ TRAIN_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data
 VAL_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data/eval.parquet"
 
 TOOL_CONFIG="$CONFIG_PATH/tool_config/api_search_tool_config.yaml"
-EXPERIMENT_NAME='qwen2.5-7b-instruct_only_grpo_match_v1' 
+EXPERIMENT_NAME='searchr1_v2' 
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 #export WANDB_MODE=offline
@@ -63,16 +63,16 @@ python3 -m verl.trainer.main_ppo \
     trainer.val_before_train=False \
     trainer.logger='["console","wandb"]' \
     trainer.default_local_dir="/ossfs/workspace/hy58/dzl/data/checkpoints/tool_plan/$EXPERIMENT_NAME"\
-    trainer.project_name='tool_plan' \
+    trainer.project_name='tool_search' \
     trainer.experiment_name="$EXPERIMENT_NAME" \
     trainer.n_gpus_per_node=8 \
     trainer.nnodes=1 \
-    trainer.save_freq=19 \
+    trainer.save_freq=112 \
     trainer.test_freq=10 \
     data.train_files="$TRAIN_DATA" \
     data.val_files="$VAL_DATA"  \
     actor_rollout_ref.rollout.multi_turn.tool_config_path="$TOOL_CONFIG" \
-    trainer.total_epochs=1 \
+    trainer.total_epochs=2 \
     actor_rollout_ref.rollout.free_cache_engine=True
     #actor_rollout_ref.rollout.trace.backend=weave
     #actor_rollout_ref.rollout.mode=async 追踪过程

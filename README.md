@@ -34,28 +34,31 @@ pip install uvicorn fastapi
 pip install munch
 ```
 
+#### appworld environment
+
 ```bash
-conda create -n retriever_v2 python=3.10
-conda activate retriever_v2
-
-# we recommend installing torch with conda for faiss-gpu
-#conda install pytorch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 pytorch-cuda=12.1 -c pytorch -c nvidia
-
-
-conda install pytorch==2.6.0 -c pytorch
-pip install transformers datasets pyserini
-#pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu118
-
-## install the gpu version faiss to guarantee efficient RL rollout
-conda install -c pytorch -c nvidia faiss-gpu=1.8.0
-
-pip install sentence_transformers==5.2.0
-## API function
-pip install uvicorn fastapi
-pip install munch==4.0.0
+# Install and download:
+mkdir /opt/conda/envs/app12
+tar -xzf py12.tar.gz -C /opt/conda/envs/app12
+#conda create -n app12 python==3.12
+pip install torch==2.6.0 torchaudio==2.6.0 torchvision==0.21.0
+pip install appworld
+cd ./experiment/appworld_experiment/appworld
+pip install -e .  
+pip install -e 'experiments[simplified]' 
+pip install -r ./experiment/appworld_experiment/requirements.txt
 ```
+Then set up the key in "./experiment/appworld_experiment/src/configs/key.json"
 
 #### Inference
+
+##### env for Inference
+```bash
+pip install vllm==0.8.3
+pip install transformers==4.51.2
+#pip install torch==2.6.0 torchaudio==2.6.0 torchvision==0.21.0
+pip  install cachetools==5.5.2
+```
 
 ##### Stage I: generate the content of the retrieval apis and plan
 1. preprocess test data to parquet files

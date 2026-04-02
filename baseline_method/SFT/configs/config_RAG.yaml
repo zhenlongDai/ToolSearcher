@@ -1,0 +1,51 @@
+# Model arguments
+model_name_or_path: /ossfs/workspace/hy65/dzl/model/Qwen2.5-7B-Instruct
+model_revision: main
+dtype: bfloat16
+attn_implementation: flash_attention_2
+use_peft: true
+
+# Data training arguments
+dataset_name: /ossfs/workspace/hy65/dzl/code/toolPlaner/baseline_method/dataset/RAG_SFT_data
+dataset_prompt_column: prompt
+dataset_completion_column: solution
+debug_mode: true
+
+# SFT trainer config
+bf16: true
+do_eval: false
+eval_strategy: 'steps'
+gradient_accumulation_steps: 8 
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+learning_rate: 1.0e-04
+log_level: info
+logging_steps: 5
+logging_strategy: steps
+lr_scheduler_type: constant_with_warmup
+max_grad_norm: 0.2
+max_seq_length: 5000
+max_steps: -1
+num_train_epochs: 5
+output_dir: /ossfs/workspace/ts/dzl/model/weights/RAG_SFT
+per_device_eval_batch_size: 4
+per_device_train_batch_size: 4
+hub_model_id: RAG_SFT
+hub_strategy: every_save
+push_to_hub: false
+wandb_project: RAG_SFT
+report_to:
+- wandb
+save_strategy: "steps"
+save_steps: 0.2
+eval_steps: 0.2
+save_total_limit: 2
+load_best_model_at_end: true
+metric_for_best_model: eval_loss
+greater_is_better: false
+seed: 42
+warmup_ratio: 0.0285
+model_init_kwargs:
+  torch_load_kwargs:
+    weights_only: false
