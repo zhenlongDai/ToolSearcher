@@ -297,8 +297,22 @@ def compute_advantage(
         data.batch["advantages"] = advantages
         data.batch["returns"] = returns
 
+    elif adv_estimator == AdvantageEstimator.GDPO:
+        # Initialize the mask for GDPO calculation
+        gdpo_calculation_mask = data.batch["response_mask"]
+        advantages, returns = core_algos.compute_GDPO_advantage(
+            token_level_rewards=data.batch["token_level_rewards"],
+            search_tensors= search_tensors,
+            response_mask=gdpo_calculation_mask,
+            index=data.non_tensor_batch["uid"],
+            norm_adv_by_std_in_grpo=norm_adv_by_std_in_grpo,
+        )
+        data.batch["advantages"] = advantages
+        data.batch["returns"] = returns
+
     elif adv_estimator == AdvantageEstimator.TOOL_SEARCH:
-        # Initialize the mask for TOOL_PLAN calculation
+        # No use in final version
+        # Initialize the mask for TOOL_SEARCH calculation
         try:
             tool_plan_calculation_mask = data.batch["response_mask"]
             # Call compute_tool_plan_advantage with parameters matching its definition
@@ -429,6 +443,7 @@ class RayPPOTrainer:
             AdvantageEstimator.GPG,
             AdvantageEstimator.TOOL_PLAN,
             AdvantageEstimator.TOOL_SEARCH,
+            AdvantageEstimator.GDPO,
         ]:
             self.use_critic = False
         else:

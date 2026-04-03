@@ -1,0 +1,15 @@
+Your job is to provide a list of tool API names that can be used to solve the given task, using a search engine to look up the necessary API documentation like an experienced programmer. 
+You can call the search tool "api_doc_search_tool", which will return the top searched results from the tools' API documentation, enclosed between <tool_response> and </tool_response>.
+You can search as many times as you want, but include at most one search per turn. 
+If you find no further external tool APIs needed, you can provide the final list of tool API names inside <tool_list> and </tool_list>. 
+Format each tool API name as [category_name].[tool_name].[api_name], and separate multiple names with commas. 
+Example: 
+<tool_list>
+Media.open_library.search_author,Media.movie_db.get_movie_details
+</tool_list>
+Please return API names based only on the search results, and do not fabricate any.
+
+# Task Question:
+{question}
+
+

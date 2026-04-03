@@ -129,7 +129,7 @@ class AdvantageEstimator(str, Enum):
     GPG = "gpg"
     TOOL_PLAN = "tool_plan"
     TOOL_SEARCH = "tool_search"
-
+    GDPO = "gdpo"
 class AdaptiveKLController:
     """
     Adaptive KL controller described in the paper:
@@ -310,8 +310,7 @@ def compute_grpo_outcome_advantage(
             else:
                 scores[i] = scores[i] - id2mean[index[i]]
         scores = scores.unsqueeze(-1) * response_mask
-    #print(f"{scores}")
-    #input("press2")
+    
     return scores, scores
 
 
@@ -851,6 +850,131 @@ def compute_tool_plan_advantage(
 
     return final_adv_tensor, final_adv_tensor
 
+
+def compute_GDPO(
+    token_level_rewards,
+    response_mask,
+    index,
+    epsilon,
+    norm_adv_by_std_in_grpo,
+    config: Optional[AlgoConfig],
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Compute advantage for GRPO, operating only on Outcome reward
+    (with only one scalar reward for each response).
+
+    Args:
+        token_level_rewards: `(torch.Tensor)`
+            shape is (bs, response_length)
+        response_mask: `(torch.Tensor)`
+            shape is (bs, response_length)
+        index: `(np.ndarray)`
+            index array for grouping
+        epsilon: `(float)`
+            small value to avoid division by zero
+        norm_adv_by_std_in_grpo: `(bool)`
+            whether to scale the GRPO advantage
+        config: `(Optional[AlgoConfig])`
+            algorithm configuration object
+
+    Note:
+        If norm_adv_by_std_in_grpo is True, the advantage is scaled by the std, as in the original GRPO.
+        If False, the advantage is not scaled, as in Dr.GRPO (https://arxiv.org/abs/2503.20783).
+
+    Returns:
+        advantages: `(torch.Tensor)`
+            shape is (bs, response_length)
+        Returns: `(torch.Tensor)`
+            shape is (bs, response_length)
+    """
+    #print(f"{token_level_rewards}")
+    #input("press")
+    if token_level_rewards.dim() ==2:
+        scores = token_level_rewards.sum(dim=-1)
+    elif token_level_rewards.dim() == 1:
+        scores = token_level_rewards.clone()
+    id2score = defaultdict(list)
+    id2mean = {}
+    id2std = {}
+
+    with torch.no_grad():
+        bsz = scores.shape[0]
+        for i in range(bsz):
+            id2score[index[i]].append(scores[i])
+        for idx in id2score:
+            if len(id2score[idx]) == 1:
+                id2mean[idx] = torch.tensor(0.0)
+                id2std[idx] = torch.tensor(1.0)
+            elif len(id2score[idx]) > 1:
+                id2mean[idx] = torch.mean(torch.tensor(id2score[idx]))
+                id2std[idx] = torch.std(torch.tensor([id2score[idx]]))
+            else:
+                raise ValueError(f"no score in prompt index: {idx}")
+        for i in range(bsz):
+            if norm_adv_by_std_in_grpo:
+                scores[i] = (scores[i] - id2mean[index[i]]) / (id2std[index[i]] + epsilon)
+            else:
+                scores[i] = scores[i] - id2mean[index[i]]
+        scores = scores.unsqueeze(-1) * response_mask
+    
+    return scores
+
+
+@register_adv_est(AdvantageEstimator.GDPO) 
+def compute_GDPO_advantage(
+    token_level_rewards: list[torch.Tensor],
+    search_tensors,
+    response_mask: torch.Tensor,
+    index: np.ndarray,
+    epsilon: float = 1e-6,
+    norm_adv_by_std_in_grpo: bool = True,
+    config: Optional[AlgoConfig] = None,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Compute advantage for tool planer
+
+    Args:
+        token_level_rewards: `list[(torch.Tensor)]`
+            size is bs
+        search_tensors: 
+            `list[tensor]`
+        has_answer_states:
+            len is bs , item's type is boolean
+        response_mask: `(torch.Tensor)`
+            shape is (bs, response_length)
+        index: `(np.ndarray)`
+            index array for grouping
+        epsilon: `(float)`
+            small value to avoid division by zero
+        norm_adv_by_std_in_grpo: `(bool)`
+            whether to scale the GRPO advantage
+        config: `(Optional[AlgoConfig])`
+            algorithm configuration object
+
+    Returns:
+        advantages: `(torch.Tensor)`
+            shape is (bs, response_length)
+        Returns: `(torch.Tensor)`
+            shape is (bs, response_length)
+    """
+
+    tool_selection_adv_reward = compute_GDPO(token_level_rewards, response_mask, index, epsilon, norm_adv_by_std_in_grpo, config)
+    search_recall = [A.sum()*1.0/ A.numel() for A in search_tensors]          # 每个是 0-dim tensor（标量）
+    search_recall_rewards = torch.stack(search_recall, dim=0)        # 形状为 (len(list_A),)
+    
+    #print("search_recall_rewards.shape", search_recall_rewards.shape)  # torch.Size([len(list_A)])
+    search_adv_reward = compute_GDPO(search_recall_rewards, response_mask, index, epsilon, norm_adv_by_std_in_grpo, config)
+    try:
+        final_adv_tensor = tool_selection_adv_reward + search_adv_reward
+    except Exception as e:
+        print(f"[ERROR] Combining scores for index : {e}")
+        print(f"tool_selection_adv_reward[: {tool_selection_adv_reward}")
+        print(f"search_adv_reward[: {search_adv_reward}")
+        raise
+    #print("final_adv_tensor.shape", final_adv_tensor.shape)
+    
+    
+    return final_adv_tensor, final_adv_tensor
 
 @register_adv_est(AdvantageEstimator.TOOL_SEARCH) 
 def compute_tool_search_advantage(

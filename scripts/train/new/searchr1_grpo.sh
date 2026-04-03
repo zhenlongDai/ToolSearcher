@@ -9,11 +9,11 @@ PROJECT_DIR="$(pwd)"
 CONFIG_PATH="$PROJECT_DIR/config"
 
 
-TRAIN_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data/train.parquet"
-VAL_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data/eval.parquet"
+TRAIN_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolselection_with_CL/train.parquet"
+VAL_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolselection_with_CL/eval.parquet"
 
-TOOL_CONFIG="$CONFIG_PATH/tool_config/api_search_tool_config.yaml"
-EXPERIMENT_NAME='toolsearcher_only_grpo_F1_ablation_search_v2' 
+TOOL_CONFIG="$CONFIG_PATH/tool_config/api_search_tool_config_without_category.yaml"
+EXPERIMENT_NAME='searchr1_grpo' 
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 #export WANDB_MODE=offline
@@ -61,8 +61,8 @@ python3 -m verl.trainer.main_ppo \
     trainer.critic_warmup=0 \
     trainer.val_before_train=False \
     trainer.logger='["console","wandb"]' \
-    trainer.default_local_dir="/ossfs/workspace/temp_checkpoints/$EXPERIMENT_NAME"\
-    trainer.project_name='tool_plan' \
+    trainer.default_local_dir="/ossfs/workspace/hy240/dzl/checkpoints/$EXPERIMENT_NAME"\
+    trainer.project_name='tool_search' \
     trainer.experiment_name="$EXPERIMENT_NAME" \
     trainer.n_gpus_per_node=8 \
     trainer.nnodes=1 \

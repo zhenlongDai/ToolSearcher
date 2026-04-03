@@ -9,11 +9,11 @@ PROJECT_DIR="$(pwd)"
 CONFIG_PATH="$PROJECT_DIR/config"
 
 
-TRAIN_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data/train.parquet"
+TRAIN_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data/eval.parquet"
 VAL_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data/eval.parquet"
 
 TOOL_CONFIG="$CONFIG_PATH/tool_config/api_search_tool_config.yaml"
-EXPERIMENT_NAME='tool_plan_group_grpo_gt_match_test' 
+EXPERIMENT_NAME='GDPO' 
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 export WANDB_MODE=offline
@@ -24,8 +24,8 @@ python3 -m verl.trainer.main_ppo \
     --config-path="$CONFIG_PATH" \
     --config-name='tool_plan_multiturn_grpo' \
     reward_model.reward_manager=toolplan\
-    reward_model.reward_kwargs.reward_mode='gt_match'\
-    algorithm.adv_estimator=tool_plan\
+    reward_model.reward_kwargs.reward_mode='gt_selection'\
+    algorithm.adv_estimator=gdpo\
     data.train_batch_size=8 \
     data.val_batch_size=128 \
     data.max_prompt_length=4096 \
@@ -53,7 +53,7 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.rollout.name=sglang \
     actor_rollout_ref.rollout.gpu_memory_utilization=0.5 \
     actor_rollout_ref.rollout.n=4 \
-    actor_rollout_ref.rollout.multi_turn.max_assistant_turns=6 \
+    actor_rollout_ref.rollout.multi_turn.max_assistant_turns=8 \
     actor_rollout_ref.rollout.multi_turn.max_tool_response_length=768\
     actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=2 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
@@ -70,6 +70,7 @@ python3 -m verl.trainer.main_ppo \
     data.train_files="$TRAIN_DATA" \
     data.val_files="$VAL_DATA"  \
     actor_rollout_ref.rollout.multi_turn.tool_config_path="$TOOL_CONFIG" \
+    trainer.default_local_dir="/ossfs/workspace/temp_checkpoints/$EXPERIMENT_NAME"\
     trainer.total_epochs=1 \
     actor_rollout_ref.rollout.free_cache_engine=True
     #actor_rollout_ref.rollout.trace.backend=weave
