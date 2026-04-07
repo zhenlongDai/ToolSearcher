@@ -4,7 +4,7 @@ tools:
       retrieval_service_url: http://127.0.0.1:1350/retrieve
       num_workers: 120
       rate_limit: 120
-      topk: 20
+      topk: 5
       timeout: 5000
       type: native
     tool_schema:

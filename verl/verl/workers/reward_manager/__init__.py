@@ -18,9 +18,10 @@ from .dapo import DAPORewardManager
 from .naive import NaiveRewardManager
 from .prime import PrimeRewardManager
 from .toolplan import ToolplanRewardManager
-
+from .MARAG import MARAGRewardManager
 # Note(haibin.lin): no need to include all reward managers here in case of complicated dependencies
 __all__ = [
+    "MARAGRewardManager",
     "ToolplanRewardManager",
     "BatchRewardManager",
     "DAPORewardManager",

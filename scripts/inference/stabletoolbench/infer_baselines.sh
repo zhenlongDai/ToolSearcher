@@ -12,8 +12,8 @@ METHOD_NAME="searchr1"
 VAL_DATA="./data/stabletoolbench_dataset/tool_selection.parquet"
 
 TOOL_CONFIG="$CONFIG_PATH/$DATASET_NAME/api_search_tool_config.yaml"
-EXPERIMENT_NAME='GDPO_wCL_top20' 
-checkpoints_path='/ossfs/workspace/hy65/dzl/code/toolPlaner/checkpoints/GDPO_wCL'
+EXPERIMENT_NAME='GDPO_CL_top20' 
+checkpoints_path='/ossfs/workspace/hy65/dzl/code/toolPlaner/checkpoints/GDPO_CL'
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 export WANDB_DISABLED=true
 export NCCL_P2P_DISABLE=1

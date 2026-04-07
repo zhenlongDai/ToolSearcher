@@ -24,26 +24,68 @@ from verl.utils.toolplan.search_process_util import search_process, parse_tools_
 from verl.utils.toolplan.check_util import check_turns_data
 import copy
 import random
-#role:system/user/[assistant/tool] , 理想状态assistant结尾
-#content:
+from verl.utils.toolplan.adv_compute import create_turns_and_cumulative_tensors
+import re
+import random
+
+def get_tool_list_str_and_format_score(response_str):
+    answer_pattern = r"<tool_list>(.*?)</tool_list>"
+    match = re.finditer(answer_pattern, response_str, re.DOTALL)
+    matches = list(match)
+    format_score = 0.0
+    tool_list_str = None
+    # If there are 0  matches, return None
+    if len(matches) < 1:
+        tool_list_str = "empty" 
+    elif len(matches) == 1:
+        format_score = 0.1
+        tool_list_str = matches[-1].group(1).strip()
+    else:
+        format_score = 0.0
+        tool_list_str = matches[-1].group(1).strip()
+    # If there are 2 or more matches, return the last one
+    return tool_list_str, format_score
+
+def parse_tool_list(tool_list_str: str):
+  if tool_list_str == "empty":
+    return []
+  
+  return [
+      item.strip()
+      for item in tool_list_str.split(",")
+      if item.strip()
+  ]
+
 def get_api_names(search_oject):
 
     return f"{search_oject['category_name']}.{search_oject['tool_name']}.{search_oject['api_name']}"
 
-def have_ground_truth_in_tool_response(search_response: list[dict], available_ground_truth_set):
-    #print(search_response)
+def get_api_names_in_tool_response(search_response: list[dict]):
     api_names = [get_api_names(search_object) for search_object in search_response]
-    api_name_set = set(api_names)
-    #print("----------")
-    #print(f"api_name_set:{api_name_set}")
-    match_count = len(available_ground_truth_set & api_name_set)
-    return match_count > 0, match_count, available_ground_truth_set & api_name_set
+    return api_names
 
-def cal_process_reward(single_data, ground_truth):
+def compute_id_match(pred, gold):
+    if not isinstance(pred, set):
+        pred = set(pred)
+    if not isinstance(gold, set):
+        gold = set(gold)
 
-    temp_ground_truth = copy.deepcopy(ground_truth)
-    available_ground_truth_set = set(temp_ground_truth)
-    #print_single_data(single_data)
+    tp = len(pred & gold)      # 交集
+    fp = len(pred - gold)      # 预测有但 gold 没有
+    fn = len(gold - pred)      # gold 有但预测没有
+    return tp, fp, fn
+
+def compute_F1_score(pred, target):
+  tp, fp, fn = compute_id_match(pred, target)
+  precision = tp / (tp + fp) if tp + fp > 0 else 0.0
+  recall    = tp / (tp + fn) if tp + fn > 0 else 0.0
+  f1 = 2 * precision * recall / (precision + recall) if precision + recall > 0 else 0.0
+  return f1
+
+def cal_doc_F1_reward(single_data, ground_truth):
+
+    ground_truth_list = copy.deepcopy(ground_truth)
+  
 
     dialogue_view = _structure_single_dialogue(single_data)
     search_process_list = []
@@ -58,44 +100,49 @@ def cal_process_reward(single_data, ground_truth):
             # last search process maybe not get the retrieval content due to the limited length of context
             #obj = parse_tools_from_retrieval_content(turn_view.content)
             
-    process_rewards = []
-    event_turn = 0
-    
-    for seach_process in search_process_list:
-        flag, match_count, match_api_names = have_ground_truth_in_tool_response(seach_process.retrieval_api_names, available_ground_truth_set)
-        event_turn+=1
-        if flag:
-            available_ground_truth_set = available_ground_truth_set - match_api_names
-            search_process_reward = float(1.0/event_turn)
-            for i in range(event_turn-1):
-                process_rewards.append(0.0)
-            process_rewards.append(search_process_reward) #search_process_reward
-            #reset event_turn to zero
-            event_turn = 0
-    
-    for i in range(event_turn): # add zero reward for left wrong search process
-        process_rewards.append(0.0)
-
+    search_api_list = []
+    for search_item in search_process_list:
+        api_names = get_api_names_in_tool_response(search_item.retrieval_api_names)
+        search_api_list.extend(api_names)
+        
+   
     if dialogue_view.turns[-1].role == "assistant" and dialogue_view.turns[-1].tool_calls == None:
         has_answer_state = True
     else:
         has_answer_state = False
     
     # calulate the search_ratio
-    ground_truth_set = set(ground_truth)
-    apis_in_search_process = ground_truth_set-available_ground_truth_set
-    search_ratio = len(ground_truth_set-available_ground_truth_set)*1.0 / len(ground_truth_set)
-    #print(process_rewards)
-    return process_rewards, has_answer_state, search_ratio, apis_in_search_process
+    ground_truth_set = set(ground_truth_list)
+    search_api_set = set(search_api_list)
+
+    true_positive = len(ground_truth_set & search_api_set)
+    predicted_positive = len(search_api_set)
+    actual_positive = len(ground_truth_set)
+
+    precision = true_positive / predicted_positive if predicted_positive > 0 else 0.0
+    search_ratio    = true_positive / actual_positive   if actual_positive > 0   else 0.0
+    search_f1 = (2 * precision * search_ratio / (precision + search_ratio) if (precision + search_ratio) > 0 else 0.0)
+    apis_in_search_process = ground_truth_set&search_api_set
+ 
+    return  has_answer_state, search_f1, search_ratio, apis_in_search_process
             
-    
 
+def compute_token_level_F1_score(solution_str, ground_truth :list[str], tokenizer):
+    api_name_list_str, format_score =  get_tool_list_str_and_format_score(solution_str)
+    api_name_tool_list = parse_tool_list(api_name_list_str)
+    tp, fp, fn = compute_id_match(api_name_tool_list, ground_truth)
+    selection_from_gt_ratio = tp / (tp + fn) if tp + fn > 0 else 0.0
+    ground_truth_str = ",".join(ground_truth)
+    pred_ids = tokenizer.encode(api_name_list_str)
+    gt_ids   = tokenizer.encode(ground_truth_str)
+    token_score = compute_F1_score(pred_ids, gt_ids)    
+    return {"tool_selection_score": token_score, "selection_from_gt_ratio": selection_from_gt_ratio}
 
-@register("toolplan")
-class ToolplanRewardManager:
+@register("MARAG")
+class MARAGRewardManager:
     """The reward manager."""
 
-    def __init__(self, tokenizer, num_examine, compute_score=None, reward_fn_key="data_source") -> None:
+    def __init__(self, tokenizer, num_examine, compute_score=None, reward_fn_key="data_source", reward_mode="gt_selection") -> None:
         """
         Initialize the ToolPlanRewardManager instance.
 
@@ -110,6 +157,7 @@ class ToolplanRewardManager:
         self.num_examine = num_examine  # the number of batches of decoded responses to print to the console
         self.compute_score = compute_score or default_compute_score
         self.reward_fn_key = reward_fn_key  # Store the key for accessing the data source
+        self.reward_mode = reward_mode
 
     def __call__(self, data: DataProto, return_dict=False):
         """We will expand this function gradually based on the available datasets"""
@@ -121,11 +169,11 @@ class ToolplanRewardManager:
             else:
                 return data.batch["rm_scores"]
 
-        reward_tensor = torch.zeros(data.batch["responses"].shape[0], dtype=torch.float32)
-        process_rewards = []
+        reward_tensor = torch.zeros_like(data.batch["responses"], dtype=torch.float32)
+        #reward_tensor = torch.zeros(data.batch["responses"].shape[0], dtype=torch.float32)
+
         has_answer_states = []
         search_ratios = []
-        selection_from_search_ratios=[]
         selection_from_gt_ratios=[]
 
         reward_extra_info = defaultdict(list)
@@ -157,18 +205,26 @@ class ToolplanRewardManager:
             num_turns = data_item.non_tensor_batch.get("__num_turns__", None)
             extra_info["num_turns"] = num_turns
 
-            process_scores, has_answer_state, search_ratio, apis_in_search_process = cal_process_reward(data_item.non_tensor_batch['messages']['messages'], ground_truth)
+            has_answer_state, search_f1, search_ratio, apis_in_search_process = cal_doc_F1_reward(data_item.non_tensor_batch['messages']['messages'], ground_truth)
             
-           
-            extra_info['apis_in_search_process'] = apis_in_search_process
-            result_dict = self.compute_score(
-                data_source=data_source,
+            #extra_info['apis_in_search_process'] = apis_in_search_process
+            #extra_info['reward_mode'] = self.reward_mode
+
+
+            #cal_tool_exploration_reward()
+            expert_turns = len(ground_truth)
+            if num_turns <= expert_turns:
+                tool_exploration_reward = 1.0
+            else:
+                tool_exploration_reward = max(0, 1 - (num_turns - expert_turns) / num_turns)
+
+            # compute the token-level F1 answer reward
+            result_dict = compute_token_level_F1_score(
                 solution_str=response_str,
-                ground_truth=ground_truth, #考虑检索到的内容与ground_truth Recall and Precision to calcuate F1.
-                extra_info=extra_info,
+                ground_truth=ground_truth,
+                tokenizer = self.tokenizer
             )
             tool_selection_score = result_dict['tool_selection_score']
-            selection_from_search_ratio = result_dict['selection_from_search_ratio']
             selection_from_gt_ratio = result_dict['selection_from_gt_ratio']
 
             if isinstance(tool_selection_score, dict):
@@ -177,23 +233,14 @@ class ToolplanRewardManager:
                 for key, value in tool_selection_score.items():
                     reward_extra_info[key].append(value)
             else:
-                reward = tool_selection_score
-
-            #response_mask = data_item.batch["response_mask"]
-            # flag = check_turns_data(process_scores, has_answer_state, response_mask)
-            # if flag == False:
-            #     print_single_data(data_item.non_tensor_batch['messages']['messages'])
-            #     print("process_scores", process_scores)
-            #     print("has_answer_state", has_answer_state)
-            #     print("response_mask", response_mask.tolist())
-            #     raise ValueError("process_scores and has_answer_state are not consistent with response_mask")
+                reward = tool_selection_score + tool_exploration_reward + search_f1
                 
-            process_rewards.append(process_scores)
             has_answer_states.append(has_answer_state)
-            reward_tensor[i] = reward
+            reward_tensor[i, valid_response_length - 1] = reward
+       
             search_ratios.append(search_ratio)
-            selection_from_search_ratios.append(selection_from_search_ratio)
             selection_from_gt_ratios.append(selection_from_gt_ratio)
+
 
             if data_source not in already_print_data_sources:
                 already_print_data_sources[data_source] = 0
@@ -204,26 +251,18 @@ class ToolplanRewardManager:
                 print("[prompt]", prompt_str)
                 print("[response]", response_str)
                 print("[ground_truth]", ground_truth)
-                print("[process_scores]", process_scores)
                 print("[has_answer_state]", has_answer_state)
                 print("[search_ratio]", search_ratio)
-                print("[selection_from_search_ratio]", selection_from_search_ratio)
                 print("[selection_from_gt_ratio]", selection_from_gt_ratio)
                 print("[apis_in_search_process]", apis_in_search_process)
-                print("[tool_selection_score](have format)", tool_selection_score)
+                print("[tool_selection_score][0,3]", reward)
                 print("[result_dict]", result_dict)
-                score = tool_selection_score
-                if isinstance(score, dict):
-                    for key, value in score.items():
-                        print(f"[{key}]", value)
-                else:
-                    print("[score]", score)
-                #input()
-
-        reward_extra_info['process_rewards'] = process_rewards
+            
+   
+                
         reward_extra_info['has_answer_states'] = has_answer_states
         reward_extra_info['search_ratios'] = search_ratios
-        reward_extra_info['selection_from_search_ratios'] = selection_from_search_ratios
+        #reward_extra_info['selection_from_search_ratios'] = 0.0
         reward_extra_info['selection_from_gt_ratios'] = selection_from_gt_ratios
 
         #search_ratio, selection_ratio_from_search, selection_ratio_from_groundtruth 

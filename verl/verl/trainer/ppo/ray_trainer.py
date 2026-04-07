@@ -292,8 +292,8 @@ def compute_advantage(
             norm_adv_by_std_in_grpo=norm_adv_by_std_in_grpo,
         )
         selection_mask_value = 1.0
-        search_response_mask = get_search_response_mask(tool_plan_calculation_mask, turns_tensors, selection_mask_value)
-        data.batch["response_mask"] = search_response_mask
+        #search_response_mask = get_search_response_mask(tool_plan_calculation_mask, turns_tensors, selection_mask_value)
+        #data.batch["response_mask"] = search_response_mask
         data.batch["advantages"] = advantages
         data.batch["returns"] = returns
 
@@ -1302,6 +1302,7 @@ class RayPPOTrainer:
                         else:
                             reward_tensor, reward_extra_infos_dict = compute_reward(batch, self.reward_fn) #here cal reward
 
+                    
                     # recompute old_log_probs
                     with marked_timer("old_log_prob", timing_raw, color="blue"):
                         old_log_prob = self.actor_rollout_wg.compute_log_prob(batch)
@@ -1346,13 +1347,13 @@ class RayPPOTrainer:
                             else:
                                 ref_log_prob = self.actor_rollout_wg.compute_ref_log_prob(batch)
                             batch = batch.union(ref_log_prob)
-
+                   
                     # compute values
                     if self.use_critic:
                         with marked_timer("values", timing_raw, color="cyan"):
                             values = self.critic_wg.compute_values(batch)
                             batch = batch.union(values)
-
+                    
                     with marked_timer("adv", timing_raw, color="brown"):
                         # we combine with rule-based rm
                         reward_extra_infos_dict: dict[str, list]
