@@ -9,7 +9,7 @@ PROJECT_DIR="$(pwd)"
 CONFIG_PATH="$PROJECT_DIR/inference/config"
 VAL_DATA="./data/stabletoolbench_dataset/tool_selection.parquet"
 DATASET_NAME="stabletoolbench"
-TOOL_CONFIG="$CONFIG_PATH/$DATASET_NAME/api_search_tool_config.yaml"
+TOOL_CONFIG="$CONFIG_PATH/$DATASET_NAME/api_search_tool_config_without_category.yaml"
 
 
 METHOD_NAME="toolsearcher"

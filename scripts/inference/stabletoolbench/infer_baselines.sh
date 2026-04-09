@@ -11,9 +11,9 @@ CONFIG_PATH="$PROJECT_DIR/inference/config"
 METHOD_NAME="searchr1"
 VAL_DATA="./data/stabletoolbench_dataset/tool_selection.parquet"
 
-TOOL_CONFIG="$CONFIG_PATH/$DATASET_NAME/api_search_tool_config.yaml"
-EXPERIMENT_NAME='GDPO_CL_top20' 
-checkpoints_path='/ossfs/workspace/hy65/dzl/code/toolPlaner/checkpoints/GDPO_CL'
+TOOL_CONFIG="$CONFIG_PATH/$DATASET_NAME/api_search_tool_config_without_category.yaml"
+EXPERIMENT_NAME='MARAG_R1_wCL_top20' 
+checkpoints_path='/ossfs/workspace/hy65/dzl/code/toolPlaner/checkpoints/MARAG_R1_wCL'
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 export WANDB_DISABLED=true
 export NCCL_P2P_DISABLE=1
@@ -41,7 +41,7 @@ python -m utils.inference_util.SGLangRollout \
     actor_rollout_ref.rollout.name=sglang \
     actor_rollout_ref.rollout.gpu_memory_utilization=0.5 \
     actor_rollout_ref.rollout.n=1 \
-    actor_rollout_ref.rollout.multi_turn.max_assistant_turns=5\
+    actor_rollout_ref.rollout.multi_turn.max_assistant_turns=8\
     actor_rollout_ref.rollout.multi_turn.max_tool_response_length=4096\
     actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=4 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \

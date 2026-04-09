@@ -2,6 +2,7 @@ data/*
 experiment_results/*
 tmp/*
 .sumi/*
+.claude/*
 experiment/appworld_experiment/appworld/*
 baseline_method/RAG/data/*
 baseline_method/output_dir/*

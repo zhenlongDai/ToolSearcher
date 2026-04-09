@@ -11,7 +11,7 @@ CONFIG_PATH="$PROJECT_DIR/inference/config"
 METHOD_NAME="appworld/toolsearcher"
 VAL_DATA="./data/appworld_dataset/tool_selection.parquet"
 
-TOOL_CONFIG="$CONFIG_PATH/$DATASET_NAME/api_search_tool_config.yaml"
+TOOL_CONFIG="$CONFIG_PATH/$DATASET_NAME/api_search_tool_config_without_category.yaml"
 EXPERIMENT_NAME='baseline_top20_T10' # change topk in config
  
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7

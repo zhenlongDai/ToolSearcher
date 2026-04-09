@@ -36,6 +36,20 @@ def get_overall_apis(selected_apis):
 
     return overall_apis
 
+def filter_core_apis(selected_apis):
+    overall_apis = []
+
+    for api in selected_apis:
+        app_name = api.split('.', 1)[0]
+        if app_name == "supervisor" or app_name =="docs":
+            continue
+        elif 'login' in api:
+            continue
+        else:
+            overall_apis.append(api)
+
+    return overall_apis
+
 def get_search_apis(search_apis_list):
     search_apis = []
     if isinstance(search_apis_list, list) and len(search_apis_list) > 0 and isinstance(search_apis_list[0], list):
@@ -48,6 +62,12 @@ def get_search_apis(search_apis_list):
         api_name = api.split('.', 1)[-1]
         final_search_apis.append(api_name)
     return final_search_apis
+
+def is_set_match(ground_truth, predict_apis):
+    core_predict_apis = set(ground_truth) & set(predict_apis) 
+    if core_predict_apis == set(ground_truth):
+        return True
+    return False
 
 def eval_appworld_metric(file_path, groundtruth_file_path, retrieved_file_path):
    
@@ -71,20 +91,29 @@ def eval_appworld_metric(file_path, groundtruth_file_path, retrieved_file_path):
             if "search_apis" in data:
                 search_apis = get_search_apis(data['search_apis'])
                 search_apis = list(set(search_apis))
+                
         elif 'generated_text' in data:
             selected_apis = parse_tool_list(data['generated_text'])
             if retrieved_file_path !='':
                 search_apis = parse_tool_apiname_lists_from_retrieval_content(retrieve_content_dic[data['index']])
                 search_apis = list(set(search_apis))
+            elif "search_apis" in data:
+                search_apis = get_search_apis(data['search_apis'])
+                search_apis = list(set(search_apis))
 
         #1. caluate the rate of core apis
         cs_f1, cs_recall, cs_precision = cal_f1_recall_precision(core_ground_truth, selected_apis)
         if "search_apis" in data:
+    
             search_f1, search_recall, search_precision = cal_f1_recall_precision_from_seach_apis(core_ground_truth, search_apis)
         else:
             search_f1, search_recall, search_precision = 0.0,0.0,0.0
-        match = is_match(core_ground_truth, selected_apis)
-        
+        core_selected_apis = filter_core_apis(selected_apis)
+        core_match = is_set_match(core_ground_truth, core_selected_apis)
+        # print(core_ground_truth)
+        # print(core_selected_apis)
+        # print(selected_apis)
+        # input()
         #2. calculate the rate based on selected appname (add login)
         _selected_apis = get_overall_apis(selected_apis)
         s_f1, s_recall, s_precision = cal_f1_recall_precision(ground_truth, _selected_apis)
@@ -103,7 +132,8 @@ def eval_appworld_metric(file_path, groundtruth_file_path, retrieved_file_path):
             'selected_precision': s_precision,
             'search_recall': search_recall,
             'search_precision': search_precision,
-            'match': match
+            'match': match,
+            'core_match': core_match
         }
         results.append(res)
 

@@ -1,0 +1,26 @@
+You are a helpful AI assistant that selects the most appropriate tools/APIs to solve a given task.
+
+Based on the plan and the retrieved candidate APIs for each step, select the tool API names that are necessary to complete the task.
+
+You should provide the final list of tool API names inside <tool_list> and </tool_list>.
+Format each tool API name as [tool_name].[api_name], and separate multiple names with commas.
+Example:
+<tool_list>
+spotify.show_artist,spotify.search_songs
+</tool_list>
+
+Important rules:
+1. Only select APIs from the retrieved candidate APIs provided below.
+2. Do not fabricate any API names.
+
+
+# Task Question:
+{question}
+
+# Plan:
+{plan}
+
+# Retrieved Candidate APIs for Each Step:
+{step_retrieved_content}
+
+Now select the necessary APIs based on the plan and retrieved candidates.

@@ -1,0 +1,22 @@
+tools:
+  - class_name: verl.tools.api_search_tool.APISearchTool
+    config:
+      retrieval_service_url: http://127.0.0.1:1360/retrieve
+      num_workers: 120
+      rate_limit: 120
+      topk: 20
+      timeout: 300
+      type: native
+    tool_schema:
+      type: function
+      function:
+        name: api_doc_search_tool
+        description: Searches relevant tools' API documents based on the given query.
+        parameters:
+          type: object
+          properties:
+            query:
+              type: string
+              description: A fully-formed semantic query. The tool will return the top searched results from the tools' API documentation for the query.
+          required: 
+            - query
