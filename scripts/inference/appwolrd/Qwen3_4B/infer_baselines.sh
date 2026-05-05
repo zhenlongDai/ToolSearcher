@@ -6,14 +6,16 @@ set -x
 ulimit -n 65535
 
 PROJECT_DIR="$(pwd)"
+DATASET_NAME="appworld"
 CONFIG_PATH="$PROJECT_DIR/inference/config"
-VAL_DATA="./data/stabletoolbench_dataset/tool_selection.parquet"
-DATASET_NAME="stabletoolbench"
+VAL_DATA="./data/appworld_dataset/test.parquet"
+#VAL_DATA="./data/appworld_dataset/tool_selection.parquet"
+
 TOOL_CONFIG="$CONFIG_PATH/$DATASET_NAME/api_search_tool_config_without_category.yaml"
-
-
-METHOD_NAME="toolsearcher"
-EXPERIMENT_NAME='toolsearcher_correct_search_mask' 
+#METHOD_NAME="appworld/multiturn"
+METHOD_NAME="appworld_test/GDPO_wCL"
+EXPERIMENT_NAME='GDPO_Qwen3-4B_v2' # change topk in config
+MODEL_PATH="/ossfs/workspace/hy65/dzl/code/toolPlaner/checkpoints/Qwen3/GDPO_Qwen3-4B"
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 export WANDB_DISABLED=true
@@ -24,19 +26,19 @@ python -m utils.inference_util.SGLangRollout \
     --config-path="$CONFIG_PATH" \
     --config-name='tool_search_multiturn_infer' \
     data.val_batch_size=4 \
-    data.max_prompt_length=1024 \
-    data.max_response_length=25000 \
+    data.max_prompt_length=2048 \
+    data.max_response_length=30000 \
     data.filter_overlong_prompts=True \
     data.truncation='error' \
     data.return_raw_chat=True \
-    actor_rollout_ref.model.path='/ossfs/workspace/hy57/dzl/checkpoints/toolsearcher_correct_search_mask' \
+    actor_rollout_ref.model.path=$MODEL_PATH \
     actor_rollout_ref.model.use_remove_padding=True \
     actor_rollout_ref.actor.ppo_mini_batch_size=256 \
     actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=4 \
     actor_rollout_ref.model.enable_gradient_checkpointing=True \
     actor_rollout_ref.actor.fsdp_config.param_offload=False \
     actor_rollout_ref.actor.fsdp_config.optimizer_offload=False \
-    actor_rollout_ref.rollout.max_model_len=30000 \
+    actor_rollout_ref.rollout.max_model_len=32768 \
     actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=4 \
     actor_rollout_ref.rollout.tensor_model_parallel_size=2 \
     actor_rollout_ref.rollout.name=sglang \

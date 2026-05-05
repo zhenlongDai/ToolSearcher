@@ -9,14 +9,14 @@ PROJECT_DIR="$(pwd)"
 CONFIG_PATH="$PROJECT_DIR/config"
 
 
-TRAIN_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data/train.parquet"
+TRAIN_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data/eval.parquet"
 VAL_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data/eval.parquet"
 
-TOOL_CONFIG="$CONFIG_PATH/tool_config/api_search_tool_config_without_category.yaml"
-EXPERIMENT_NAME='toolsearcher_wCL' 
+TOOL_CONFIG="$CONFIG_PATH/tool_config/api_search_tool_config.yaml"
+EXPERIMENT_NAME='toolsearcher_refine' 
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-#export WANDB_MODE=offline
+export WANDB_MODE=offline
 export NCCL_P2P_DISABLE=1
 export HYDRA_FULL_ERROR=1
 
@@ -24,9 +24,9 @@ python3 -m verl.trainer.main_ppo \
     --config-path="$CONFIG_PATH" \
     --config-name='tool_plan_multiturn_grpo' \
     reward_model.reward_manager=toolplan\
-    reward_model.reward_kwargs.reward_mode='gt_match'\
+    reward_model.reward_kwargs.reward_mode='gt_selection'\
     algorithm.adv_estimator=tool_plan\
-    data.train_batch_size=256 \
+    data.train_batch_size=8 \
     data.val_batch_size=128 \
     data.max_prompt_length=4096 \
     data.max_response_length=5000 \
@@ -38,7 +38,7 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.actor.optim.lr=1e-6 \
     actor_rollout_ref.actor.optim.lr_warmup_steps_ratio=0.285 \
     actor_rollout_ref.model.use_remove_padding=True \
-    actor_rollout_ref.actor.ppo_mini_batch_size=256 \
+    actor_rollout_ref.actor.ppo_mini_batch_size=8 \
     actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=2 \
     actor_rollout_ref.actor.use_kl_loss=True \
     actor_rollout_ref.actor.kl_loss_coef=0.001 \
@@ -52,7 +52,7 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.rollout.tensor_model_parallel_size=2 \
     actor_rollout_ref.rollout.name=sglang \
     actor_rollout_ref.rollout.gpu_memory_utilization=0.5 \
-    actor_rollout_ref.rollout.n=5 \
+    actor_rollout_ref.rollout.n=4 \
     actor_rollout_ref.rollout.multi_turn.max_assistant_turns=8 \
     actor_rollout_ref.rollout.multi_turn.max_tool_response_length=768\
     actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=2 \
@@ -70,7 +70,7 @@ python3 -m verl.trainer.main_ppo \
     data.train_files="$TRAIN_DATA" \
     data.val_files="$VAL_DATA"  \
     actor_rollout_ref.rollout.multi_turn.tool_config_path="$TOOL_CONFIG" \
-    trainer.default_local_dir="/ossfs/workspace/hy240/dzl/checkpoints/$EXPERIMENT_NAME"\
+    trainer.default_local_dir="/ossfs/workspace/temp_checkpoints/$EXPERIMENT_NAME"\
     trainer.total_epochs=1 \
     actor_rollout_ref.rollout.free_cache_engine=True
     #actor_rollout_ref.rollout.trace.backend=weave

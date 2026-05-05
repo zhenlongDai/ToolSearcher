@@ -111,7 +111,7 @@ class InferenceBase:
   
     print(">>> Generation completed")
     result_queue.put(result)
-    print(">>> Put in result queue")
+    print(f">>> Put in result queue DP rank {local_dp_rank}")
     barrier.wait()  # 等待所有进程到达此点
     print(f"Exit the process {local_dp_rank}")
 

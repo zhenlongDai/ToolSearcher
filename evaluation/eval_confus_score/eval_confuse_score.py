@@ -1,7 +1,7 @@
 import argparse
 import pandas as pd
-from utils.json_util import load_list_from_json 
-from tqdm import tqdm 
+from utils.json_util import load_list_from_json
+from tqdm import tqdm
 from utils.evaluation_util.metric_util import cal_f1_recall_precision, cal_f1_recall_precision_from_seach_apis, ndcg_at_k_sklearn
 from utils.evaluation_util.metric_util import is_match
 
@@ -13,6 +13,9 @@ import os
 import numpy as np
 from utils.evaluation_util.format_util import parse_tool_list
 from utils.evaluation_util.format_util import parse_tool_apiname_lists_from_retrieval_content
+from collections import defaultdict
+from datetime import datetime
+
 
 def get_api_docs_from_file(toolbench_tools_dir):
     #1.获取指定目录下所有文件夹名类别
@@ -26,10 +29,10 @@ def get_api_docs_from_file(toolbench_tools_dir):
         category_tools_path = os.path.join(toolbench_tools_dir, category_name)
         API_docs = get_api_docs(category_name, category_tools_path)
         standand_API_docs = constrcut_toolbench_api_docs(API_docs)
-    
+
         for str_api_doc, api_doc in zip(standand_API_docs, API_docs):
             tool_api_name = get_standardize_api_name(api_doc)
-            toolbench_API_docs_dic[tool_api_name] = str_api_doc 
+            toolbench_API_docs_dic[tool_api_name] = str_api_doc
             #print(tool_api_name)
     #input()
     return toolbench_API_docs_dic
@@ -74,7 +77,7 @@ def cal_confuse_score(ground_truth, search_apis, store):
         per_gold_mean = score_items["per_gold_mean"]
 
         miss_n = no_select_count
-        
+
         if miss_n > 0:
             fill_value = 1.0
             per_gold_max.extend([fill_value] * miss_n)
@@ -100,8 +103,84 @@ def get_search_apis(search_apis_list):
         search_apis = list(search_apis_list)
     return search_apis
 
-def eval_stabletoolbench_metric(file_path, toolbench_tools_dir, save_vector_file_path, groundtruth_file_path, retrieved_file_path):
-   
+# ==================== 分组统计辅助函数 ====================
+
+METRIC_KEYS = [
+    'selected_f1', 'selected_recall', 'selected_precision',
+    'search_recall', 'search_precision',
+    'max_confuse', 'topL_confuse', 'mean_confuse', 'match'
+]
+
+
+def _avg_results(results):
+    """计算一组结果的平均值"""
+    if not results:
+        return None
+    return {key: sum(r[key] for r in results) / len(results) for key in results[0]}
+
+
+def _extract_group(data_source):
+    """从 data_source 中提取 G1/G2/G3 分组，如 'G1_category' -> 'G1'"""
+    for g in ['G1', 'G2', 'G3']:
+        if data_source.startswith(g):
+            return g
+    return data_source.split('_')[0]
+
+
+def _build_md_table(rows_data, metric_keys=METRIC_KEYS):
+    """
+    构建 markdown 表格。
+    rows_data: list of (row_name, avg_dict, count)
+    """
+    header = "| Category | Count | " + " | ".join(metric_keys) + " |"
+    sep = "|" + "---|" * (2 + len(metric_keys))
+    lines = [header, sep]
+    for name, avg, count in rows_data:
+        if avg is None:
+            continue
+        vals = " | ".join(f"{avg[k]:.4f}" for k in metric_keys)
+        lines.append(f"| {name} | {count} | {vals} |")
+    return "\n".join(lines)
+
+
+def _compute_one(data, groundtruth_dic, retrieve_content_dic, store):
+    """计算单条数据的指标，返回 (res_dict, data_source)"""
+    data_source = data['data_source']
+    ground_truth = groundtruth_dic[data['index']]
+    if 'selected_apis' in data:
+        selected_apis = data['selected_apis']
+        search_apis = get_search_apis(data['search_apis'])
+    elif 'generated_text' in data:
+        selected_apis = parse_tool_list(data['generated_text'])
+        search_apis = parse_tool_apiname_lists_from_retrieval_content(retrieve_content_dic[data['index']])
+
+    s_f1, s_recall, s_precision = cal_f1_recall_precision(ground_truth, selected_apis)
+    search_f1, search_recall, search_precision = cal_f1_recall_precision_from_seach_apis(ground_truth, search_apis)
+
+    try:
+        confuse_score_item = cal_confuse_score(ground_truth, search_apis, store)
+    except Exception as e:
+        print("cal_metric 出错!!!：", e)
+        raise e
+
+    match = is_match(ground_truth, selected_apis)
+    res = {
+        'selected_f1': s_f1,
+        'selected_recall': s_recall,
+        'selected_precision': s_precision,
+        'search_recall': search_recall,
+        'search_precision': search_precision,
+        'max_confuse': confuse_score_item['max_confuse'],
+        'topL_confuse': confuse_score_item['topL_confuse'],
+        'mean_confuse': confuse_score_item['mean_confuse'],
+        'match': match
+    }
+    return res, data_source
+
+
+def eval_stabletoolbench_metric(file_path, toolbench_tools_dir, save_vector_file_path,
+                                 groundtruth_file_path, retrieved_file_path):
+
     if os.path.exists(save_vector_file_path):
         store = EmbeddingVectorStore.load(
             embedding_name="Qwen3_Embedding",
@@ -114,75 +193,85 @@ def eval_stabletoolbench_metric(file_path, toolbench_tools_dir, save_vector_file
         toolbench_API_docs_dic = get_api_docs_from_file(toolbench_tools_dir)
         api_data_list = []
         for key, value in toolbench_API_docs_dic.items():
-            api_data_list.append({"id": key, "text":value})
-            #print({"id": key, "text":value})
-            #input()
+            api_data_list.append({"id": key, "text": value})
         store = EmbeddingVectorStore(
-            embedding_name="Qwen3_Embedding", 
-            model_name="Qwen3_Embedding", 
+            embedding_name="Qwen3_Embedding",
+            model_name="Qwen3_Embedding",
             model_path="/ossfs/workspace/hy65/dzl/model/retriever/Qwen3-Embedding-0.6B",
             dtype="float32")
         store.build_from_id_texts(api_data_list, id_key="id", text_key="text", batch_size=32)
         store.save(save_vector_file_path)
-    print("Total vectors:", len(store))  # 3
-    
+    print("Total vectors:", len(store))
+
     test_data_list = load_list_from_json(file_path)
-    results = []
-    
+    results_by_source = defaultdict(list)   # data_source -> [res, ...]
+    results_by_group = defaultdict(list)    # G1/G2/G3 -> [res, ...]
+    all_results = []
+
     groundtruth_dic = get_groundtruth_dic(groundtruth_file_path)
     retrieve_content_dic = get_retrieved_content_dic(retrieved_file_path)
     for data in tqdm(test_data_list):
-        data_source = data['data_source']
-        # if 'ground_truth' in data:
-        #     ground_truth = data['ground_truth']
-        # else:
-        ground_truth = groundtruth_dic[data['index']]
-        if 'selected_apis'  in data:
-            selected_apis = data['selected_apis']
-            search_apis = get_search_apis(data['search_apis'])
-        elif 'generated_text' in data:
-            selected_apis = parse_tool_list(data['generated_text'])
-            search_apis = parse_tool_apiname_lists_from_retrieval_content(retrieve_content_dic[data['index']])
-           
-    
-        s_f1, s_recall, s_precision = cal_f1_recall_precision(ground_truth, selected_apis)
-        
-        
-        
-        search_f1, search_recall, search_precision = cal_f1_recall_precision_from_seach_apis(ground_truth, search_apis)
-        
+        res, data_source = _compute_one(data, groundtruth_dic, retrieve_content_dic, store)
+        all_results.append(res)
+        results_by_source[data_source].append(res)
+        group = _extract_group(data_source)
+        results_by_group[group].append(res)
 
-        try:
-            confuse_score_item = cal_confuse_score(ground_truth, search_apis, store)
-        except Exception as e:
-            print("cal_metric 出错!!!：", e)
-            raise e
-        #print(confuse_score)
-        match = is_match(ground_truth, selected_apis)
-        res = {
-            'selected_f1': s_f1,
-            'selected_recall': s_recall,
-            'selected_precision': s_precision,
-            'search_recall': search_recall,
-            'search_precision': search_precision,
-            'max_confuse': confuse_score_item['max_confuse'],
-            'topL_confuse': confuse_score_item['topL_confuse'],
-            'mean_confuse': confuse_score_item['mean_confuse'],
-            'match': match
-        }
-        results.append(res)
+    # ---------- 构建 markdown 输出 ----------
+    avg_all = _avg_results(all_results)
 
-    if results:
-        print("start")
-        avg = {key: sum(r[key] for r in results) / len(results) for key in results[0]}
+    md_lines = []
+    md_lines.append(f"# Confuse Score Evaluation Report")
+    md_lines.append(f"- **Predict file**: `{file_path}`")
+    md_lines.append(f"- **Timestamp**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    md_lines.append("")
 
-        for k, v in avg.items():
-            print(f"{k}: {v:.4f}")
+    # 1. Overall
+    md_lines.append("## Overall")
+    overall_rows = [("Overall", avg_all, len(all_results))]
+    md_lines.append(_build_md_table(overall_rows))
+    md_lines.append("")
+
+    # 2. By Group (G1/G2/G3)
+    md_lines.append("## By Group (G1/G2/G3)")
+    group_rows = []
+    for group in sorted(results_by_group.keys()):
+        avg = _avg_results(results_by_group[group])
+        group_rows.append((group, avg, len(results_by_group[group])))
+    md_lines.append(_build_md_table(group_rows))
+    md_lines.append("")
+
+    # 3. By Data Source
+    md_lines.append("## By Data Source")
+    source_rows = []
+    for source in sorted(results_by_source.keys()):
+        avg = _avg_results(results_by_source[source])
+        source_rows.append((source, avg, len(results_by_source[source])))
+    md_lines.append(_build_md_table(source_rows))
+    md_lines.append("")
+
+    md_content = "\n".join(md_lines)
+
+    # 打印到控制台
+    print(md_content)
+
+    # ---------- 保存结果到文件 ----------
+    base_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "..", "experiment_results", "category_results", "stabletoolbench"
+    )
+    os.makedirs(base_dir, exist_ok=True)
+
+    predict_filename = os.path.splitext(os.path.basename(file_path))[0]
+    md_path = os.path.join(base_dir, f"{predict_filename}.md")
+    with open(md_path, "w", encoding="utf-8") as f:
+        f.write(md_content)
+    print(f"\nResults saved to {md_path}")
+
 
 def get_groundtruth_dic(groundtruth_file_path):
     groundtruth_dic = {}
     groundtruth_list = read_parquet_to_list(groundtruth_file_path)
-    retrieve_content_dic = {}
     for data in groundtruth_list:
         groundtruth_dic[data['extra_info']['index']] = data['reward_model']['ground_truth']
     return groundtruth_dic
@@ -203,14 +292,13 @@ def main():
     parser.add_argument('--retrieved_file_path', type=str, help='Path to the parquet file')
     args = parser.parse_args()
     eval_stabletoolbench_metric(
-        args.predict_file_path, 
-        args.toolbench_tools_dir, 
+        args.predict_file_path,
+        args.toolbench_tools_dir,
         args.save_vector_file_path,
         args.groundtruth_file_path,
         args.retrieved_file_path
         )
 
 
-   
 if __name__ == '__main__':
     main()

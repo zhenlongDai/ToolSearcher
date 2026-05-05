@@ -37,6 +37,8 @@ class MultiCategoryRetriever:
 
         if category not in self.retrievers:
             return [f"Category: [{category}] is not within the search scope"], [0]
+        elif query == "" or query == None:
+            return ["The query cannot be empty."], [0]
         else:
             
             search_results = self.retrievers[category].search(query, topk)

@@ -1,18 +1,20 @@
-model_path: "/ossfs/workspace/hy65/dzl/model/Qwen2.5-7B-Instruct"
+model_path: "/ossfs/workspace/hy58/dzl/model/LLMs/Qwen3-4B-Instruct"
 dp_size: 8
 tp_size: 1
 dp_master_ip: "127.0.0.1"
 dp_master_port: 6530 
 data_file_path: ""
-max_input_tokens: 31000 
+max_input_tokens: 20000 
 max_output_tokens: 2000
 save_file_path: "./baseline_method/output_dir/RAG/RAG_test.json"
 system_prompt: ""
 temperature: 0.7
 top_p: 1.0
-gpu_memory_utilization: 0.9
+gpu_memory_utilization: 0.7
 dtype: "float16"
 use_lora: false
 lora_path: "None"
 prompt_mode: "split"
 debug_mode: false
+
+

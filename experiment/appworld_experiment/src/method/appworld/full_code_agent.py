@@ -13,7 +13,7 @@ from src.utils.common.utils import fill_model_server_url
 from src.utils.common.prompts import load_prompt_to_chat_messages
 from src.utils.agent import Agent, ExecutionIO, Status
 from src.utils.api_LLMpredictor import APILLMPredictor
-
+from src.utils.api_predefiner import APIPredefiner
 
 @Agent.register("custom_full_code_agent")
 class CustomFullCodeAgent(Agent):  # type: ignore[misc]
@@ -33,9 +33,17 @@ class CustomFullCodeAgent(Agent):  # type: ignore[misc]
         base_url = api_predictor_config["model_config"].get("base_url", None)
         if base_url:
             api_predictor_config["model_config"]["base_url"] = fill_model_server_url(base_url)
-        self.api_predictor = APILLMPredictor(
-            app_api_separator=self.app_api_separator, **api_predictor_config
-        )
+        # print('api_predictor_config', api_predictor_config)
+        # input()
+        if api_predictor_config['mode'] == 'predicted':
+            self.api_predictor = APILLMPredictor(
+                app_api_separator=self.app_api_separator, **api_predictor_config
+            )
+        elif api_predictor_config['mode'] == 'predefine':
+            self.api_predictor = APIPredefiner(api_predictor_config['api_file_path']) 
+        else:
+            raise ValueError('api_predictor_config mode must be predicted or predefine')
+
         self.code_prompt_template = cast(str, read_file(code_prompt_file_path.replace("/", os.sep)))
         self.retrial_prompt = cast(str, read_file(retrial_prompt_file_path.replace("/", os.sep)))
         self.remove_code_demo_comments = remove_code_demo_comments

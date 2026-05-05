@@ -9,11 +9,11 @@ PROJECT_DIR="$(pwd)"
 CONFIG_PATH="$PROJECT_DIR/config"
 
 
-TRAIN_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolselection_with_CL/train.parquet"
-VAL_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolselection_with_CL/eval.parquet"
+TRAIN_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data/train.parquet"
+VAL_DATA="/ossfs/workspace/hy65/dzl/code/toolPlaner/data/toolplan_qarquet_data/eval.parquet"
 
 TOOL_CONFIG="$CONFIG_PATH/tool_config/api_search_tool_config_without_category.yaml"
-EXPERIMENT_NAME='searchr1_grpo' 
+EXPERIMENT_NAME='searchr1_wCL_Qwen3-2B' 
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 #export WANDB_MODE=offline
@@ -22,10 +22,10 @@ export HYDRA_FULL_ERROR=1
 
 python3 -m verl.trainer.main_ppo \
     --config-path="$CONFIG_PATH" \
-    --config-name='tool_plan_multiturn_grpo' \
+    --config-name='tool_plan_multiturn_grpo'\
     reward_model.reward_manager=toolplan\
+    reward_model.reward_kwargs.reward_mode='gt_match'\
     algorithm.adv_estimator=grpo\
-    reward_model.reward_kwargs.reward_mode='gt_selection'\
     data.train_batch_size=256 \
     data.val_batch_size=128 \
     data.max_prompt_length=4096 \
@@ -34,7 +34,7 @@ python3 -m verl.trainer.main_ppo \
     data.truncation='error' \
     data.return_raw_chat=True \
     data.shuffle=True\
-    actor_rollout_ref.model.path='/ossfs/workspace/hy65/dzl/model/Qwen2.5-7B-Instruct' \
+    actor_rollout_ref.model.path='/ossfs/workspace/hy58/dzl/model/LLMs/Qwen3-1.7B' \
     actor_rollout_ref.actor.optim.lr=1e-6 \
     actor_rollout_ref.actor.optim.lr_warmup_steps_ratio=0.285 \
     actor_rollout_ref.model.use_remove_padding=True \
@@ -61,8 +61,8 @@ python3 -m verl.trainer.main_ppo \
     trainer.critic_warmup=0 \
     trainer.val_before_train=False \
     trainer.logger='["console","wandb"]' \
-    trainer.default_local_dir="/ossfs/workspace/hy240/dzl/checkpoints/$EXPERIMENT_NAME"\
-    trainer.project_name='tool_search' \
+    trainer.default_local_dir="/ossfs/workspace/hy58/dzl/checkpoints/$EXPERIMENT_NAME"\
+    trainer.project_name='tool_search_Qwen3' \
     trainer.experiment_name="$EXPERIMENT_NAME" \
     trainer.n_gpus_per_node=8 \
     trainer.nnodes=1 \

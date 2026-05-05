@@ -30,6 +30,7 @@ class APILLMPredictor(_APIPredictor):  # type: ignore[misc]
         )
 
         set_api_key_by_model_config(model_config)
+        
         self.language_model = LanguageModel(**model_config)
         self.is_save_response = is_save_response
         if is_save_response:

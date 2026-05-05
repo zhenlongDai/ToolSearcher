@@ -13,7 +13,7 @@ from src.utils.common.logger import Logger
 from src.utils.common.usage_tracker import Usage, UsageTracker
 from src.utils.common.utils import fill_model_server_url
 from src.utils.language_model import LanguageModel
-
+from src.utils.process_config import set_api_key_by_model_config
 
 @dataclass
 class ExecutionIO:
@@ -41,6 +41,9 @@ class Agent(FromDict):
         base_url = model_config.get("base_url", None)
         if base_url:
             model_config["base_url"] = fill_model_server_url(base_url)
+
+        set_api_key_by_model_config(model_config)
+
         self.language_model = LanguageModel(**model_config)
         self.messages: list[dict[str, Any]] = []
         self.max_steps = max_steps

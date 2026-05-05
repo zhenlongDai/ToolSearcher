@@ -8,11 +8,11 @@ ulimit -n 65535
 PROJECT_DIR="$(pwd)"
 DATASET_NAME="appworld"
 CONFIG_PATH="$PROJECT_DIR/inference/config"
-VAL_DATA="./data/appworld_dataset/tool_selection.parquet"
+VAL_DATA="./data/appworld_dataset/test.parquet"
 
 TOOL_CONFIG="$CONFIG_PATH/$DATASET_NAME/api_search_tool_config_without_category.yaml"
-METHOD_NAME="appworld/GDPO_wCL"
-EXPERIMENT_NAME='GDPO_wCL_top20' # change topk in config
+METHOD_NAME="appworld_test/GDPO_wCL"
+EXPERIMENT_NAME='GDPO_wCL_top5' # change topk in config
 MODEL_PATH="/ossfs/workspace/hy65/dzl/code/toolPlaner/checkpoints/GDPO_wCL"
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
@@ -43,7 +43,7 @@ python -m utils.inference_util.SGLangRollout \
     actor_rollout_ref.rollout.gpu_memory_utilization=0.5 \
     actor_rollout_ref.rollout.n=1 \
     actor_rollout_ref.rollout.multi_turn.max_assistant_turns=8\
-    actor_rollout_ref.rollout.multi_turn.max_tool_response_length=6144\
+    actor_rollout_ref.rollout.multi_turn.max_tool_response_length=4096\
     actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=4 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     trainer.project_name="$METHOD_NAME"\

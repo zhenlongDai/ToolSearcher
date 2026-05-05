@@ -130,8 +130,8 @@ def process_appworld_parquet_data(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="process dataset and save to Parquet.")
-    parser.add_argument("--origin_data_path",default="./data/appworld_dataset/tool_selection.json",help="Local directory to load the original Json files.",)
-    parser.add_argument("--save_local_path",default="./data/appworld_dataset/tool_selection.parquet",help="Local directory to save the processed Parquet files.",)
+    parser.add_argument("--origin_data_path",default="./data/appworld_dataset/test.json",help="Local directory to load the original Json files.",)
+    parser.add_argument("--save_local_path",default="./data/appworld_dataset/test.parquet",help="Local directory to save the processed Parquet files.",)
     parser.add_argument("--prompt_template_path", default="./construct/process_data/prompt_template/appworld/api_search_prompt.txt", help="prompt_template_path")
 
     args = parser.parse_args()

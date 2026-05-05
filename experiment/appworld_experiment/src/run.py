@@ -38,8 +38,8 @@ def run_experiment(
     process_index: int = 0,
 ) -> None:
     agent_config = runner_config.pop("agent")
-    print(runner_config)
-
+    # print(agent_config)
+    # input("press")
     dataset_name = runner_config.pop("dataset")
     if runner_config:
         raise Exception(f"Unexpected keys in the runner config: {runner_config}")
@@ -70,6 +70,8 @@ def run_experiment_cli(
     num_processes: int = 1,
     process_index: int = None,
     root: str = ".",
+    predict_api_mode: str = None,
+    api_file_path: str = None,
     #experiment_outputs: str = "./outputs"
 ):
     update_root(root)
@@ -77,8 +79,12 @@ def run_experiment_cli(
         model_name=model_name,
         agent_name=agent_name,
         dataset_name=dataset_name,
+        predict_api_mode=predict_api_mode,
+        api_file_path=api_file_path
     )
     runner_config = experiment_config.pop("config")
+    #print(runner_config)
+    #input("press enter to continue")
     os.environ["MODEL_SERVER_URL"] = ""
     run_experiment(
         experiment_name=experiment_name,
@@ -101,6 +107,8 @@ def main():
     parser.add_argument("--model_name", type=str, default=None)
     parser.add_argument("--agent_name", type=str, default=None)
     parser.add_argument("--dataset_name", type=str, default=None)
+    parser.add_argument("--predict_api_mode", type=str, default="predicted")
+    parser.add_argument("--api_file_path", type=str, default=None)
     parser.add_argument("--task_id", type=str, default=None)
     parser.add_argument("--with_evaluation", action="store_true")
     parser.add_argument("--num_processes", type=int, default=1)
@@ -113,6 +121,8 @@ def main():
         model_name=args.model_name,
         agent_name=args.agent_name,
         dataset_name=args.dataset_name,
+        predict_api_mode=args.predict_api_mode,
+        api_file_path=args.api_file_path,
         task_id=args.task_id,
         with_evaluation=args.with_evaluation,
         num_processes=args.num_processes,

@@ -67,7 +67,7 @@ def process_single_data(infoData, prompt_template, data_source_tag, retrieved_co
         }
     )
 
-def process_appworld_parquet_data(args):
+def process_stabletoolbench_parquet_data(args):
     prompt_template_path = args.prompt_template_path
     prompt_template = cast(str, read_file(prompt_template_path.replace("/", os.sep)))
     info_data_list = read_parquet_to_list(args.origin_data_file)
@@ -90,12 +90,12 @@ def process_appworld_parquet_data(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="process dataset and save to Parquet.")
-    parser.add_argument("--origin_data_file",default="./data/stabletoolbench_dataset/tool_selection.parquet",help="Local directory to load the original Json files.",)
-    parser.add_argument("--save_local_dir",default="./baseline_method/RAG/data/stabletoolbench_dataset",help="Local directory to save the processed Parquet files.",)
-    parser.add_argument("--prompt_template_path", default="./baseline_method/RAG/prompt_template/api_search_prompt.txt", help="prompt_template_path")
+    parser.add_argument("--origin_data_file",default="./data/appworld_dataset/tool_selection.parquet",help="Local directory to load the original Json files.",)
+    parser.add_argument("--save_local_dir",default="./baseline_method/RAG/data/appworld_dataset",help="Local directory to save the processed Parquet files.",)
+    parser.add_argument("--prompt_template_path", default="./baseline_method/RAG/prompt_template/appworld_prompt.txt", help="prompt_template_path")
     parser.add_argument("--save_file_name",default="tool_selection",help="Local directory to save the processed Parquet files.",)
     parser.add_argument("--port",default=1360,help="port of url.",)
-    parser.add_argument("--topk",default=50,help="port of url.",)
+    parser.add_argument("--topk",default=100,help="port of url.",)
     args = parser.parse_args()
     print(args)
-    process_appworld_parquet_data(args)
+    process_stabletoolbench_parquet_data(args)

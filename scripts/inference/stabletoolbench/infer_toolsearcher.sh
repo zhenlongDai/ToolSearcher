@@ -11,9 +11,9 @@ CONFIG_PATH="$PROJECT_DIR/inference/config"
 METHOD_NAME="toolsearcher"
 VAL_DATA="./data/stabletoolbench_dataset/tool_selection.parquet"
 
-TOOL_CONFIG="$CONFIG_PATH/$DATASET_NAME/api_search_tool_config_without_category.yaml"
-EXPERIMENT_NAME='toolsearch_top30' # change topk in config
- 
+TOOL_CONFIG="$CONFIG_PATH/$DATASET_NAME/api_search_tool_config.yaml"
+EXPERIMENT_NAME='toolsearcher_Qwen3_4B_top5' # change topk in config
+checkpoints_path='/ossfs/workspace/hy65/dzl/code/toolPlaner/checkpoints/Qwen3/toolsearcher_Qwen3_4B'
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 export WANDB_DISABLED=true
 export NCCL_P2P_DISABLE=1
@@ -28,7 +28,7 @@ python -m utils.inference_util.SGLangRollout \
     data.filter_overlong_prompts=True \
     data.truncation='error' \
     data.return_raw_chat=True \
-    actor_rollout_ref.model.path='/ossfs/workspace/hy58/dzl/data/checkpoints/tool_plan/toolsearcher' \
+    actor_rollout_ref.model.path=$checkpoints_path \
     actor_rollout_ref.model.use_remove_padding=True \
     actor_rollout_ref.actor.ppo_mini_batch_size=256 \
     actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=4 \
@@ -42,7 +42,7 @@ python -m utils.inference_util.SGLangRollout \
     actor_rollout_ref.rollout.gpu_memory_utilization=0.5 \
     actor_rollout_ref.rollout.n=1 \
     actor_rollout_ref.rollout.multi_turn.max_assistant_turns=8\
-    actor_rollout_ref.rollout.multi_turn.max_tool_response_length=6144\
+    actor_rollout_ref.rollout.multi_turn.max_tool_response_length=4096\
     actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=4 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     trainer.project_name="$METHOD_NAME"\

@@ -1,5 +1,5 @@
 # Model arguments
-model_name_or_path: /ossfs/workspace/hy65/dzl/model/Qwen2.5-7B-Instruct
+model_name_or_path: /ossfs/workspace/hy58/dzl/model/LLMs/Qwen3-4B-Instruct
 model_revision: main
 dtype: bfloat16
 attn_implementation: flash_attention_2
@@ -28,7 +28,7 @@ max_grad_norm: 0.2
 max_seq_length: 5000
 max_steps: -1
 num_train_epochs: 5
-output_dir: /ossfs/workspace/ts/dzl/model/weights/RAG_SFT
+output_dir: /ossfs/workspace/hy58/dzl/checkpoints/RAG_SFT_Qwen3-4B
 per_device_eval_batch_size: 4
 per_device_train_batch_size: 4
 hub_model_id: RAG_SFT

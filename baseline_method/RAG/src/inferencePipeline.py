@@ -1,6 +1,6 @@
 import argparse
 from utils.vllm_util.configs import InferenceConfig, load_config
-from typing import Any
+from typing import Any, List, Dict
 import sys
 import multiprocessing
 import os
@@ -42,6 +42,28 @@ class InferencePipeline(InferenceBase):
     print("data_list[0]:", self.data_list[0])
     print("------prompt----------\n" , self.data_list[0]['prompt'], "\n---------------------")
 
+  def truncate_messages(self, messages: List[Dict], tokenizer, max_tokens: int) -> List[Dict]:
+    """Truncate messages to fit within max_tokens"""
+    prompt_text = tokenizer.apply_chat_template(
+        messages,
+        tokenize=False,
+        add_generation_prompt=False,
+    )
+    tokens = tokenizer.encode(prompt_text, add_special_tokens=False)
+
+    if len(tokens) <= max_tokens:
+      return messages
+
+    # Truncate the last user message content
+    new_messages = list(messages)
+    last_msg = dict(new_messages[-1])
+    kept_ids = tokens[:max_tokens]
+    truncated_text = tokenizer.decode(kept_ids, skip_special_tokens=True)
+    # Estimate content portion
+    last_msg["content"] = truncated_text[-min(len(last_msg["content"]), len(truncated_text) * 2):]
+    new_messages[-1] = last_msg
+    return new_messages
+
   def get_prompt(self, messages, tokenizer):
     # Prepare the input to the model
     # messages = [
@@ -61,16 +83,18 @@ class InferencePipeline(InferenceBase):
     tokenizer = AutoTokenizer.from_pretrained(args.model_path)
     data_list = read_parquet_to_list(data_file_path)
 
-    if self.debug_mode: 
-      data_list = data_list[:20]  
-    
+    if self.debug_mode:
+      data_list = data_list[:20]
+
     prompt_data_list  = []
     for data in tqdm(data_list, desc="Processing data"):
         new_data = {
           'index': data['extra_info']['index'],
           'data_source': data['data_source'],
         }
-        new_data['prompt'] = self.get_prompt(data['messages'], tokenizer)
+        # Truncate messages to fit within max_input_tokens
+        messages = self.truncate_messages(data['messages'], tokenizer, args.max_input_tokens)
+        new_data['prompt'] = self.get_prompt(messages, tokenizer)
         prompt_data_list.append(new_data)
     return prompt_data_list
 

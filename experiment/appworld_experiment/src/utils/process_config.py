@@ -5,6 +5,8 @@ def load_experiment_config(
     model_name: str | None = None,
     agent_name: str | None = None,
     dataset_name: str | None = None,
+    predict_api_mode: str = None,
+    api_file_path: str = None,
 ) -> dict:
     with open(os.path.join("./src/configs/agent_config", agent_name + ".json"), "r") as f:
         experiment_config = json.load(f)
@@ -15,10 +17,18 @@ def load_experiment_config(
         model_config = all_model_config.get(model_name)
         if model_config is None:
             raise Exception(f"Model config for model '{model_name}' not found.")
-        experiment_config["config"]["agent"]["api_predictor_config"]["model_config"] = model_config
+        if predict_api_mode is not None and predict_api_mode == "predicted":
+            experiment_config["config"]["agent"]["api_predictor_config"]["model_config"] = model_config
         experiment_config["config"]["agent"]["model_config"] = model_config
     if dataset_name is not None:
         experiment_config["config"]["dataset"] = dataset_name
+    
+    print("predict_api_mode:", predict_api_mode)
+    
+    if predict_api_mode is not None and predict_api_mode == "predefine":
+        experiment_config["config"]["agent"]["api_predictor_config"]["mode"] = predict_api_mode
+        experiment_config["config"]["agent"]["api_predictor_config"]["api_file_path"] = api_file_path
+
     return experiment_config
 
 def set_api_key_by_model_config(

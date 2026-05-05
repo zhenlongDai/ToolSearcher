@@ -9,7 +9,8 @@ baseline_method/output_dir/*
 evaluation/eval_confus_score/stabletoolbench/*
 utils/vllm_util/test/output/*
 experiment/appworld_experiment/src/retrieve_dataset/faiss_indexes/*
-
+analysis/draw/*
+/scripts/train/tool_planer*
 
 #stabletoolbench
 experiment/stabletoolbench_experiment/StableToolBench/server/tool_response_cache

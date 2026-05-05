@@ -103,11 +103,15 @@ def eval_appworld_metric(file_path, groundtruth_file_path, retrieved_file_path):
 
         #1. caluate the rate of core apis
         cs_f1, cs_recall, cs_precision = cal_f1_recall_precision(core_ground_truth, selected_apis)
-        if "search_apis" in data:
-    
-            search_f1, search_recall, search_precision = cal_f1_recall_precision_from_seach_apis(core_ground_truth, search_apis)
-        else:
-            search_f1, search_recall, search_precision = 0.0,0.0,0.0
+        #if "search_apis" in data:
+        if len(search_apis) == 0:
+            search_apis = []
+        elif len(search_apis[0].split('.')) == 3:
+            search_apis = [api.split('.', 1)[-1] for api in search_apis]
+        
+        search_f1, search_recall, search_precision = cal_f1_recall_precision_from_seach_apis(core_ground_truth, search_apis)
+        #else:
+        #    search_f1, search_recall, search_precision = 0.0,0.0,0.0
         core_selected_apis = filter_core_apis(selected_apis)
         core_match = is_set_match(core_ground_truth, core_selected_apis)
         # print(core_ground_truth)

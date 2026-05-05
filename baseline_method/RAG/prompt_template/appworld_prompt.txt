@@ -1,0 +1,15 @@
+Your task is to select the tool API names from the retrieved content that can solve the given task. 
+You should provide the final list of tool API names inside <tool_list> and </tool_list>. 
+Format each tool API name as [tool_name].[api_name], and separate multiple names with commas. 
+Example: 
+<tool_list>
+spotify.show_artist,spotify.search_songs
+</tool_list>
+Please return API names based only on the retrieved content, and do not fabricate any.
+
+# Task Question:
+{question}
+
+# Retrieved content:
+{retrieved_content}
+

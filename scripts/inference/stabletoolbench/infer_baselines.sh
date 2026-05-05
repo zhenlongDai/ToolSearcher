@@ -8,12 +8,12 @@ ulimit -n 65535
 PROJECT_DIR="$(pwd)"
 DATASET_NAME="stabletoolbench"
 CONFIG_PATH="$PROJECT_DIR/inference/config"
-METHOD_NAME="searchr1"
+METHOD_NAME="stabletoolbench_3B"
 VAL_DATA="./data/stabletoolbench_dataset/tool_selection.parquet"
 
 TOOL_CONFIG="$CONFIG_PATH/$DATASET_NAME/api_search_tool_config_without_category.yaml"
-EXPERIMENT_NAME='MARAG_R1_wCL_top20' 
-checkpoints_path='/ossfs/workspace/hy65/dzl/code/toolPlaner/checkpoints/MARAG_R1_wCL'
+EXPERIMENT_NAME='GSPO_Qwen3_4B_top5' 
+checkpoints_path='/ossfs/workspace/hy65/dzl/code/toolPlaner/checkpoints/Qwen3/GSPO_Qwen3_4B'
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 export WANDB_DISABLED=true
 export NCCL_P2P_DISABLE=1
@@ -24,7 +24,7 @@ python -m utils.inference_util.SGLangRollout \
     --config-name='tool_search_multiturn_infer' \
     data.val_batch_size=4 \
     data.max_prompt_length=1024 \
-    data.max_response_length=22000 \
+    data.max_response_length=30000 \
     data.filter_overlong_prompts=True \
     data.truncation='error' \
     data.return_raw_chat=True \
@@ -35,7 +35,7 @@ python -m utils.inference_util.SGLangRollout \
     actor_rollout_ref.model.enable_gradient_checkpointing=True \
     actor_rollout_ref.actor.fsdp_config.param_offload=False \
     actor_rollout_ref.actor.fsdp_config.optimizer_offload=False \
-    actor_rollout_ref.rollout.max_model_len=25000 \
+    actor_rollout_ref.rollout.max_model_len=32000 \
     actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=4 \
     actor_rollout_ref.rollout.tensor_model_parallel_size=2 \
     actor_rollout_ref.rollout.name=sglang \

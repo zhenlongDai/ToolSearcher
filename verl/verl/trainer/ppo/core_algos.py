@@ -673,7 +673,30 @@ def compute_gpg_outcome_advantage(
     return scores, scores
 
 
-def tool_selection_adv_reward_fuction( 
+def compute_search_status(search_tensors: list) -> list:
+    """
+    Compute search status for each search_tensor.
+    Returns True if all elements in the tensor are non-zero (i.e., all searches succeeded).
+
+    Args:
+        search_tensors: `list[tensor]`
+            list of search tensors, one per sample
+
+    Returns:
+        search_status: `list[bool]`
+            list of boolean values indicating whether all searches succeeded for each sample
+    """
+    search_status = []
+    for search_tensor in search_tensors:
+        if search_tensor is not None and search_tensor.numel() > 0:
+            is_all_success = (search_tensor != 0).all().item()
+            search_status.append(is_all_success)
+        else:
+            search_status.append(False)
+    return search_status
+
+
+def tool_selection_adv_reward_fuction(
     token_level_rewards: torch.Tensor,
     index: np.ndarray,
     epsilon: float = 1e-6,
@@ -778,7 +801,9 @@ def compute_tool_plan_advantage(
     #device = response_mask.device
     apiswise_adv_scores = compute_groupwise_apiswise_adv_score(search_tensors, index, epsilon)
 
-    
+    # 计算 search_status - 只有 search 全非0 时，才算 selection 的分
+    search_status = compute_search_status(search_tensors)
+
     for turns_tensor, apiswise_adv_score in zip(turns_tensors, apiswise_adv_scores):
         if turns_tensor is not None:
             adv_score = (turns_tensor * apiswise_adv_score).max(dim=1).values  # shape (turns,)
@@ -788,7 +813,7 @@ def compute_tool_plan_advantage(
             #min_val = apiswise_adv_score.min()
             #adv_score = torch.where(row_is_zero, min_val, row_max) # shape (turns,)
         else:
-            adv_score = None 
+            adv_score = None
         adv_scores.append(adv_score)
 
     bsz = response_mask.shape[0]
@@ -799,11 +824,19 @@ def compute_tool_plan_advantage(
             try:
                 if adv_scores[i] is not None:
                     if has_answer_states[i]:
-                        combined = torch.cat([adv_scores[i], tool_selection_adv_reward[i].view(1)], dim=0) # the rewards of search process and result
+                        # 只有 search_status[i] 为 True（search 全非0）时，才 cat tool_selection_adv_reward[i]
+                        if search_status[i]:
+                            combined = torch.cat([adv_scores[i], tool_selection_adv_reward[i].view(1)], dim=0) # the rewards of search process and result
+                        else:
+                            combined = torch.cat([adv_scores[i], torch.tensor([0.0], device=adv_scores[i].device)], dim=0) # search 未全成功，selection 分记为0
                     else:
                         combined = adv_scores[i] # only process reward
                 else:
-                    combined = tool_selection_adv_reward[i] # only the reward of result
+                    # 只有 search_status[i] 为 True 时，才使用 tool_selection_adv_reward[i]，否则用 0
+                    if search_status[i]:
+                        combined = tool_selection_adv_reward[i] # only the reward of result
+                    else:
+                        combined = torch.tensor([0.0], device=response_mask.device)
                 final_scores.append(combined)
             except Exception as e:
                 print(f"[ERROR] Combining scores for index {i}: {e}")
