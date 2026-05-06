@@ -6,7 +6,9 @@ To differentiate between functionally similar tools, we propose category-constra
 To explicitly model the tool search process, we propose event-level search modeling, which optimizes the search by concentrating on events that discover previously unsearched target tools, thereby enhancing the LLM's ability to plan and search for compatible tool compositions.
 To facilitate the joint learning of multiple capabilities in tool selection, we design trajectory-aligned credit allocation, a fine-grained reward mechanism that assigns objective and quantifiable credit based on each sample’s progression within the search-selection trajectory. 
 Unlike outcome-only rewards, this method evaluates samples at different stages, providing matched feedback that accurately reflects their progress for tool selection.
+
 ![fig.](./Fig/method.png)
+
 Overview of ToolSearcher. (a) Illustration of the category-constrained tool discrimination. (b) Illustration of RL for tool selection that contains event-level search modeling and trajectory-aligned credit allocation.
 
 ## Environment install
