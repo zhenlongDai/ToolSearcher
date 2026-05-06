@@ -81,7 +81,7 @@ Then set up the LLM's key in "./experiment/appworld_experiment/src/configs/key.j
 1. The data construction script can be found in the '/construct' directory. You can run these scripts to create data.
 
 2. You could choose to download data from 'https://www.kaggle.com/datasets/toolsearcher/toolsearcher-data' and push it into the '/data' directory.
-3. 
+
 ## Trainng 
 1. run a search engine based on dataset source
 ```bash
