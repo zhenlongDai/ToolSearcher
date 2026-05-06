@@ -9,10 +9,10 @@ PROJECT_DIR="$(pwd)"
 DATASET_NAME="appworld"
 CONFIG_PATH="$PROJECT_DIR/inference/config"
 METHOD_NAME="appworld/toolsearcher"
-VAL_DATA="./data/appworld_dataset/tool_selection.parquet"
+VAL_DATA="./data/appworld_dataset/tool_selection.parquet" # test(used for downstream task) or tool_selection
 
 TOOL_CONFIG="$CONFIG_PATH/$DATASET_NAME/api_search_tool_config.yaml"
-EXPERIMENT_NAME='toolsearcher_ablation_top5' # change topk in config
+EXPERIMENT_NAME='toolsearcher_top5' # change topk in config
  
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 export WANDB_DISABLED=true
@@ -28,7 +28,7 @@ python -m utils.inference_util.SGLangRollout \
     data.filter_overlong_prompts=True \
     data.truncation='error' \
     data.return_raw_chat=True \
-    actor_rollout_ref.model.path='/ossfs/workspace/hy65/dzl/code/toolPlaner/checkpoints/toolsearcher_ablation' \
+    actor_rollout_ref.model.path='/ossfs/workspace/hy65/dzl/code/toolPlaner/checkpoints/toolsearcher' \
     actor_rollout_ref.model.use_remove_padding=True \
     actor_rollout_ref.actor.ppo_mini_batch_size=256 \
     actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=4 \
